@@ -1,7 +1,7 @@
 ```javascript
 // Cloudflare Pages Function: POST /api/route-search
-// Cloudflare 무료 플랜 서브요청 한도(요청당 최대 50회)를 엄격히 준수하는 3-레이어 파이프라인:
-// - 지오코딩 2회 + 길찾기 1회 + 카카오 로컬 최대 18회(6구간 x 3카테고리) + Google 평점 보강 최대 22회 = 최대 43회 (< 50회)
+// 음식점(FD6) · 카페(CE7) 전용 3-레이어 파이프라인 (놀거리 제거, Cloudflare 50회 서브요청 한도 엄수)
+// 호출 예산: 지오코딩 2 + 길찾기 1 + 카카오 로컬 12(6구간x2) + Google 평점 최대 28 = 최대 43회 (< 50회)
 
 const HIGHWAY_PATTERN = /(고속도로|도시고속|강변북로|올림픽대로|내부순환|외곽순환|제2경인|경인고속|대교|터널)/;
 const GOOGLE_FIELD_MASK = [
@@ -25,8 +25,11 @@ export async function onRequestPost(context) {
   const apiCalls = {
     kakaoLocal: 0,
     kakaoDirections: 0,
-    googleEnterprise: 0,
-    tourApi: 0
+    googleEnterprise: 0
+  };
+  const debug = {
+    kakaoError: null,
+    googleError: null
   };
 
   try {
@@ -34,9 +37,6 @@ export async function onRequestPost(context) {
     const originQuery = (body?.origin || '').trim();
     const destQuery = (body?.destination || '').trim();
     const keyword = (body?.keyword || '').trim();
-    const categories = Array.isArray(body?.categories) && body.categories.length > 0
-      ? body.categories
-      : ['food', 'cafe', 'play'];
     const enrichRatings = body?.enrichRatings !== false && Boolean(googleKey);
 
     if (!originQuery || !destQuery) {
@@ -76,32 +76,42 @@ export async function onRequestPost(context) {
     const totalDurationSec = mainRoute.summary?.duration || 0;
     const { polyline, roadPoints } = extractRoutePoints(mainRoute);
 
-    // 3. Adaptive Corridor & IC Sampling (strictly max 6 well-spaced nodes for Cloudflare 50-subrequest safety)
-    const samplingNodes = buildAdaptiveSamplingNodes(roadPoints, 6);
+    // 3. 6 Evenly Distributed Corridor Sampling Nodes
+    const samplingNodes = buildSamplingNodes(roadPoints, 6);
 
-    // 4. Parallel Kakao Local Discovery (max 6*3 = 18 subrequests, or 6 when keyword is provided)
+    // 4. Kakao Local Discovery: ONLY 음식점(FD6) & 카페(CE7) (12 calls, or 6 calls for keyword)
     const placeMap = new Map();
     const failedNodeIdx = new Set();
-
     const kakaoTasks = [];
+
     samplingNodes.forEach((node, idx) => {
       if (keyword) {
         kakaoTasks.push(
           fetchKakaoKeywordOnce(node, keyword, kakaoKey, apiCalls)
-            .then((docs) => docs.forEach((doc) => mergeKakaoDoc(placeMap, doc, inferCategory(doc))))
-            .catch(() => { failedNodeIdx.add(idx); })
+            .then((docs) => {
+              docs.forEach((doc) => {
+                const cat = doc.category_group_code === 'CE7' ? 'cafe' : 'food';
+                mergeKakaoDoc(placeMap, doc, cat);
+              });
+            })
+            .catch((e) => {
+              failedNodeIdx.add(idx);
+              if (!debug.kakaoError) debug.kakaoError = e.message;
+            })
         );
       } else {
-        const codes = [];
-        if (categories.includes('food')) codes.push({ code: 'FD6', cat: 'food' });
-        if (categories.includes('cafe')) codes.push({ code: 'CE7', cat: 'cafe' });
-        if (categories.includes('play')) codes.push({ code: 'AT4', cat: 'play' });
-
+        const codes = [
+          { code: 'FD6', cat: 'food' },
+          { code: 'CE7', cat: 'cafe' }
+        ];
         for (const { code, cat } of codes) {
           kakaoTasks.push(
             fetchKakaoCategoryOnce(node, code, kakaoKey, apiCalls)
               .then((docs) => docs.forEach((doc) => mergeKakaoDoc(placeMap, doc, cat)))
-              .catch(() => { failedNodeIdx.add(idx); })
+              .catch((e) => {
+                failedNodeIdx.add(idx);
+                if (!debug.kakaoError) debug.kakaoError = e.message;
+              })
           );
         }
       }
@@ -109,7 +119,7 @@ export async function onRequestPost(context) {
 
     await Promise.all(kakaoTasks);
 
-    // 5. Stage 1 Fast Corridor Geometry & IC-Trap Scoring
+    // 5. Corridor Geometry & IC-Trap Scoring
     const allCandidates = Array.from(placeMap.values()).map((p) => {
       const nearest = findNearestRoadPoint(p.lat, p.lng, roadPoints);
       const directKm = Number(nearest.distKm.toFixed(2));
@@ -133,15 +143,18 @@ export async function onRequestPost(context) {
     allCandidates.sort((a, b) => a.detourMin - b.detourMin);
     const corridorPlaces = allCandidates.filter((p) => p.directKm <= 5.5);
 
-    // 6. Stage 2 Google Places API (New) Enrichment within remaining subrequest budget (<= 45 total)
+    // 6. Stage 2 Google Places API (New) Rating & Opening Hours Enrichment (balanced food + cafe)
     const usedSubrequests = apiCalls.kakaoLocal + apiCalls.kakaoDirections;
-    const googleBudget = Math.max(0, Math.min(24, 45 - usedSubrequests));
+    const googleBudget = Math.max(0, Math.min(28, 45 - usedSubrequests));
 
     if (enrichRatings && googleBudget > 0 && corridorPlaces.length > 0) {
-      // Pick balanced targets across food, cafe, play so every tab gets ratings
       const targets = pickBalancedTargets(corridorPlaces, googleBudget);
       await runBatched(targets, 5, async (place) => {
-        const g = await enrichWithGooglePlaces(place, googleKey, apiCalls);
+        const res = await enrichWithGooglePlaces(place, googleKey, apiCalls);
+        if (res.error && !debug.googleError) {
+          debug.googleError = res.error;
+        }
+        const g = res.place;
         if (g) {
           place.googlePlaceId = g.id || null;
           place.rating = typeof g.rating === 'number' ? g.rating : null;
@@ -156,6 +169,8 @@ export async function onRequestPost(context) {
       });
     }
 
+    const foodCount = corridorPlaces.filter((p) => p.category === 'food').length;
+    const cafeCount = corridorPlaces.filter((p) => p.category === 'cafe').length;
     const matchedCount = corridorPlaces.filter((p) => p.rating !== null).length;
 
     return jsonResponse({
@@ -173,12 +188,15 @@ export async function onRequestPost(context) {
         completedNodes: Math.max(0, samplingNodes.length - failedNodeIdx.size),
         failedNodes: failedNodeIdx.size,
         totalFound: corridorPlaces.length,
+        foodCount,
+        cafeCount,
         ratingMatched: matchedCount,
         unrated: corridorPlaces.length - matchedCount,
         googleEnabled: Boolean(googleKey)
       },
       places: corridorPlaces,
-      apiCalls
+      apiCalls,
+      debug
     });
   } catch (err) {
     return jsonResponse({ error: err?.message || '경로 탐색 처리 중 오류가 발생했습니다.' }, 500);
@@ -186,19 +204,16 @@ export async function onRequestPost(context) {
 }
 
 function pickBalancedTargets(places, budget) {
-  const byCat = { food: [], cafe: [], play: [] };
-  for (const p of places) {
-    if (byCat[p.category]) byCat[p.category].push(p);
-  }
+  const foods = places.filter((p) => p.category === 'food');
+  const cafes = places.filter((p) => p.category === 'cafe');
   const picked = [];
   const used = new Set();
-  const order = ['food', 'cafe', 'play'];
   let idx = 0;
   while (picked.length < budget) {
     let added = false;
-    for (const cat of order) {
+    for (const list of [foods, cafes]) {
       if (picked.length >= budget) break;
-      const item = byCat[cat][idx];
+      const item = list[idx];
       if (item && !used.has(item.id)) {
         used.add(item.id);
         picked.push(item);
@@ -278,22 +293,11 @@ function extractRoutePoints(route) {
   return { polyline: slimPolyline, roadPoints };
 }
 
-function buildAdaptiveSamplingNodes(roadPoints, maxNodes = 6) {
+function buildSamplingNodes(roadPoints, maxNodes = 6) {
   if (roadPoints.length === 0) return [];
-  if (roadPoints.length <= maxNodes) {
-    return roadPoints.map((pt, i) => ({
-      name: pt.roadName || `구간 ${i + 1}`,
-      lat: pt.lat,
-      lng: pt.lng,
-      radius: 3000,
-      type: pt.isHighway ? 'ic' : 'urban'
-    }));
-  }
-
-  // Evenly distribute 6 anchor points by cumulative route progress (0%, 20%, 40%, 60%, 80%, 100%)
   const nodes = [];
   for (let k = 0; k < maxNodes; k++) {
-    const targetRatio = k / (maxNodes - 1);
+    const targetRatio = k / Math.max(1, maxNodes - 1);
     let bestPt = roadPoints[0];
     let bestDiff = 999;
     for (let i = 0; i < roadPoints.length; i++) {
@@ -328,7 +332,7 @@ async function fetchKakaoCategoryOnce(node, categoryCode, kakaoKey, apiCalls) {
   const resp = await fetch(`https://dapi.kakao.com/v2/local/search/category.json?${params}`, {
     headers: { Authorization: `KakaoAK ${kakaoKey}` }
   });
-  if (!resp.ok) throw new Error(`Kakao category ${resp.status}`);
+  if (!resp.ok) throw new Error(`Kakao ${resp.status}`);
   const data = await resp.json();
   return data.documents || [];
 }
@@ -347,16 +351,9 @@ async function fetchKakaoKeywordOnce(node, keyword, kakaoKey, apiCalls) {
   const resp = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?${params}`, {
     headers: { Authorization: `KakaoAK ${kakaoKey}` }
   });
-  if (!resp.ok) throw new Error(`Kakao keyword ${resp.status}`);
+  if (!resp.ok) throw new Error(`Kakao ${resp.status}`);
   const data = await resp.json();
   return data.documents || [];
-}
-
-function inferCategory(doc) {
-  const code = doc.category_group_code || '';
-  if (code === 'CE7') return 'cafe';
-  if (code === 'AT4' || code === 'CT1') return 'play';
-  return 'food';
 }
 
 function mergeKakaoDoc(placeMap, doc, category) {
@@ -369,7 +366,7 @@ function mergeKakaoDoc(placeMap, doc, category) {
   placeMap.set(doc.id, {
     id: doc.id,
     name: doc.place_name,
-    category,
+    category: category === 'cafe' ? 'cafe' : 'food',
     zone: zone || '경로 주변',
     address: addr,
     lat: parseFloat(doc.y),
@@ -378,9 +375,7 @@ function mergeKakaoDoc(placeMap, doc, category) {
     kakaoUrl: doc.place_url || '',
     rating: null,
     reviews: 0,
-    freeParking: false,
-    parkingNote: '카카오맵·구글맵 상세에서 확인',
-    tags: tags.length > 0 ? tags : [category === 'cafe' ? '카페' : category === 'play' ? '놀거리' : '음식점'],
+    tags: tags.length > 0 ? tags : [category === 'cafe' ? '카페' : '음식점'],
     source: '카카오 로컬 (Google 미확인)',
     hoursText: '영업시간 미확인(상세 링크 확인)',
     googlePeriods: null
@@ -409,11 +404,13 @@ async function enrichWithGooglePlaces(place, googleKey, apiCalls) {
         }
       })
     });
-    if (!resp.ok) return null;
+    if (!resp.ok) {
+      return { place: null, error: `Google HTTP ${resp.status}` };
+    }
     const data = await resp.json();
-    return data?.places?.[0] || null;
-  } catch {
-    return null;
+    return { place: data?.places?.[0] || null, error: null };
+  } catch (e) {
+    return { place: null, error: e?.message || 'Google fetch error' };
   }
 }
 
