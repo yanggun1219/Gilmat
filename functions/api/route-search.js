@@ -1,7 +1,6 @@
 ```javascript
 // Cloudflare Pages Function: POST /api/route-search
-// 음식점(FD6) · 카페(CE7) 전용 3-레이어 파이프라인 (놀거리 제거, Cloudflare 50회 서브요청 한도 엄수)
-// 호출 예산: 지오코딩 2 + 길찾기 1 + 카카오 로컬 12(6구간x2) + Google 평점 최대 28 = 최대 43회 (< 50회)
+// 음식점(FD6) · 카페(CE7) 전용 (놀거리 제거, Cloudflare 50회 한도 준수, 백틱 미사용 안전 버전)
 
 const HIGHWAY_PATTERN = /(고속도로|도시고속|강변북로|올림픽대로|내부순환|외곽순환|제2경인|경인고속|대교|터널)/;
 const GOOGLE_FIELD_MASK = [
@@ -34,52 +33,48 @@ export async function onRequestPost(context) {
 
   try {
     const body = await request.json();
-    const originQuery = (body?.origin || '').trim();
-    const destQuery = (body?.destination || '').trim();
-    const keyword = (body?.keyword || '').trim();
-    const enrichRatings = body?.enrichRatings !== false && Boolean(googleKey);
+    const originQuery = (body && body.origin ? body.origin : '').trim();
+    const destQuery = (body && body.destination ? body.destination : '').trim();
+    const keyword = (body && body.keyword ? body.keyword : '').trim();
+    const enrichRatings = (body ? body.enrichRatings !== false : true) && Boolean(googleKey);
 
     if (!originQuery || !destQuery) {
       return jsonResponse({ error: '출발지와 목적지를 모두 입력해 주세요.' }, 400);
     }
 
-    // 1. Geocode Origin & Destination (2 subrequests)
     const [origin, destination] = await Promise.all([
       geocodeKakao(originQuery, kakaoKey, apiCalls),
       geocodeKakao(destQuery, kakaoKey, apiCalls)
     ]);
 
-    if (!origin) return jsonResponse({ error: `출발지를 찾을 수 없습니다: ${originQuery}` }, 404);
-    if (!destination) return jsonResponse({ error: `목적지를 찾을 수 없습니다: ${destQuery}` }, 404);
+    if (!origin) return jsonResponse({ error: '출발지를 찾을 수 없습니다: ' + originQuery }, 404);
+    if (!destination) return jsonResponse({ error: '목적지를 찾을 수 없습니다: ' + destQuery }, 404);
 
-    // 2. Driving Route Polyline (1 subrequest)
     const dirParams = new URLSearchParams({
-      origin: `${origin.lng},${origin.lat}`,
-      destination: `${destination.lng},${destination.lat}`,
+      origin: String(origin.lng) + ',' + String(origin.lat),
+      destination: String(destination.lng) + ',' + String(destination.lat),
       priority: 'RECOMMEND'
     });
     apiCalls.kakaoDirections += 1;
-    const dirResp = await fetch(`https://apis-navi.kakaomobility.com/v1/directions?${dirParams}`, {
-      headers: { Authorization: `KakaoAK ${kakaoKey}` }
+    const dirResp = await fetch('https://apis-navi.kakaomobility.com/v1/directions?' + dirParams.toString(), {
+      headers: { Authorization: 'KakaoAK ' + kakaoKey }
     });
     if (!dirResp.ok) {
       const txt = await dirResp.text();
-      return jsonResponse({ error: `카카오 길찾기 호출 실패 (${dirResp.status})`, detail: txt }, 502);
+      return jsonResponse({ error: '카카오 길찾기 호출 실패 (' + dirResp.status + ')', detail: txt }, 502);
     }
     const dirData = await dirResp.json();
-    const mainRoute = dirData?.routes?.[0];
+    const mainRoute = dirData && dirData.routes ? dirData.routes[0] : null;
     if (!mainRoute || mainRoute.result_code !== 0) {
-      return jsonResponse({ error: mainRoute?.result_msg || '자동차 경로를 계산할 수 없습니다.' }, 422);
+      return jsonResponse({ error: (mainRoute && mainRoute.result_msg) || '자동차 경로를 계산할 수 없습니다.' }, 422);
     }
 
-    const totalDistanceM = mainRoute.summary?.distance || 0;
-    const totalDurationSec = mainRoute.summary?.duration || 0;
+    const totalDistanceM = (mainRoute.summary && mainRoute.summary.distance) || 0;
+    const totalDurationSec = (mainRoute.summary && mainRoute.summary.duration) || 0;
     const { polyline, roadPoints } = extractRoutePoints(mainRoute);
 
-    // 3. 6 Evenly Distributed Corridor Sampling Nodes
     const samplingNodes = buildSamplingNodes(roadPoints, 6);
 
-    // 4. Kakao Local Discovery: ONLY 음식점(FD6) & 카페(CE7) (12 calls, or 6 calls for keyword)
     const placeMap = new Map();
     const failedNodeIdx = new Set();
     const kakaoTasks = [];
@@ -104,10 +99,10 @@ export async function onRequestPost(context) {
           { code: 'FD6', cat: 'food' },
           { code: 'CE7', cat: 'cafe' }
         ];
-        for (const { code, cat } of codes) {
+        for (const item of codes) {
           kakaoTasks.push(
-            fetchKakaoCategoryOnce(node, code, kakaoKey, apiCalls)
-              .then((docs) => docs.forEach((doc) => mergeKakaoDoc(placeMap, doc, cat)))
+            fetchKakaoCategoryOnce(node, item.code, kakaoKey, apiCalls)
+              .then((docs) => docs.forEach((doc) => mergeKakaoDoc(placeMap, doc, item.cat)))
               .catch((e) => {
                 failedNodeIdx.add(idx);
                 if (!debug.kakaoError) debug.kakaoError = e.message;
@@ -119,22 +114,18 @@ export async function onRequestPost(context) {
 
     await Promise.all(kakaoTasks);
 
-    // 5. Corridor Geometry & IC-Trap Scoring
     const allCandidates = Array.from(placeMap.values()).map((p) => {
       const nearest = findNearestRoadPoint(p.lat, p.lng, roadPoints);
       const directKm = Number(nearest.distKm.toFixed(2));
       const progressMin = Math.round((nearest.progressRatio * totalDurationSec) / 60);
       const icTrap = nearest.isHighway && directKm > 1.2;
-      const estimatedDetourMin = Math.max(
-        2,
-        Math.round(directKm * 3.5 + (icTrap ? 11 : 1.5))
-      );
+      const estimatedDetourMin = Math.max(2, Math.round(directKm * 3.5 + (icTrap ? 11 : 1.5)));
       return {
         ...p,
         directKm,
         progressMin,
         icTrap,
-        icTrapReason: icTrap ? `고속도로·전용도로(${nearest.roadName || '고속구간'}) 인접 구간으로 IC 우회 필요` : '',
+        icTrapReason: icTrap ? '고속도로·전용도로(' + (nearest.roadName || '고속구간') + ') 인접 구간으로 IC 우회 필요' : '',
         detourMin: estimatedDetourMin,
         detourVerified: false
       };
@@ -143,7 +134,6 @@ export async function onRequestPost(context) {
     allCandidates.sort((a, b) => a.detourMin - b.detourMin);
     const corridorPlaces = allCandidates.filter((p) => p.directKm <= 5.5);
 
-    // 6. Stage 2 Google Places API (New) Rating & Opening Hours Enrichment (balanced food + cafe)
     const usedSubrequests = apiCalls.kakaoLocal + apiCalls.kakaoDirections;
     const googleBudget = Math.max(0, Math.min(28, 45 - usedSubrequests));
 
@@ -199,7 +189,7 @@ export async function onRequestPost(context) {
       debug
     });
   } catch (err) {
-    return jsonResponse({ error: err?.message || '경로 탐색 처리 중 오류가 발생했습니다.' }, 500);
+    return jsonResponse({ error: (err && err.message) || '경로 탐색 처리 중 오류가 발생했습니다.' }, 500);
   }
 }
 
@@ -228,11 +218,11 @@ function pickBalancedTargets(places, budget) {
 
 async function geocodeKakao(query, kakaoKey, apiCalls) {
   apiCalls.kakaoLocal += 1;
-  const kwUrl = `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(query)}&size=1`;
-  const kwResp = await fetch(kwUrl, { headers: { Authorization: `KakaoAK ${kakaoKey}` } });
+  const kwUrl = 'https://dapi.kakao.com/v2/local/search/keyword.json?query=' + encodeURIComponent(query) + '&size=1';
+  const kwResp = await fetch(kwUrl, { headers: { Authorization: 'KakaoAK ' + kakaoKey } });
   if (kwResp.ok) {
     const kwData = await kwResp.json();
-    const doc = kwData?.documents?.[0];
+    const doc = kwData && kwData.documents ? kwData.documents[0] : null;
     if (doc) {
       return {
         name: doc.place_name || query,
@@ -243,15 +233,15 @@ async function geocodeKakao(query, kakaoKey, apiCalls) {
     }
   }
   apiCalls.kakaoLocal += 1;
-  const addrUrl = `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(query)}&size=1`;
-  const addrResp = await fetch(addrUrl, { headers: { Authorization: `KakaoAK ${kakaoKey}` } });
+  const addrUrl = 'https://dapi.kakao.com/v2/local/search/address.json?query=' + encodeURIComponent(query) + '&size=1';
+  const addrResp = await fetch(addrUrl, { headers: { Authorization: 'KakaoAK ' + kakaoKey } });
   if (addrResp.ok) {
     const addrData = await addrResp.json();
-    const doc = addrData?.documents?.[0];
+    const doc = addrData && addrData.documents ? addrData.documents[0] : null;
     if (doc) {
       return {
         name: query,
-        address: doc.road_address?.address_name || doc.address?.address_name || query,
+        address: (doc.road_address && doc.road_address.address_name) || (doc.address && doc.address.address_name) || query,
         lat: parseFloat(doc.y),
         lng: parseFloat(doc.x)
       };
@@ -293,11 +283,12 @@ function extractRoutePoints(route) {
   return { polyline: slimPolyline, roadPoints };
 }
 
-function buildSamplingNodes(roadPoints, maxNodes = 6) {
+function buildSamplingNodes(roadPoints, maxNodes) {
+  const count = maxNodes || 6;
   if (roadPoints.length === 0) return [];
   const nodes = [];
-  for (let k = 0; k < maxNodes; k++) {
-    const targetRatio = k / Math.max(1, maxNodes - 1);
+  for (let k = 0; k < count; k++) {
+    const targetRatio = k / Math.max(1, count - 1);
     let bestPt = roadPoints[0];
     let bestDiff = 999;
     for (let i = 0; i < roadPoints.length; i++) {
@@ -307,8 +298,9 @@ function buildSamplingNodes(roadPoints, maxNodes = 6) {
         bestPt = roadPoints[i];
       }
     }
+    const fallbackName = k === 0 ? '출발권' : (k === count - 1 ? '목적지권' : '경로 ' + String(k + 1) + '구간');
     nodes.push({
-      name: bestPt.roadName || (k === 0 ? '출발권' : k === maxNodes - 1 ? '목적지권' : `경로 ${k + 1}구간`),
+      name: bestPt.roadName || fallbackName,
       lat: bestPt.lat,
       lng: bestPt.lng,
       radius: bestPt.isHighway ? 4000 : 3000,
@@ -329,10 +321,10 @@ async function fetchKakaoCategoryOnce(node, categoryCode, kakaoKey, apiCalls) {
     page: '1',
     sort: 'distance'
   });
-  const resp = await fetch(`https://dapi.kakao.com/v2/local/search/category.json?${params}`, {
-    headers: { Authorization: `KakaoAK ${kakaoKey}` }
+  const resp = await fetch('https://dapi.kakao.com/v2/local/search/category.json?' + params.toString(), {
+    headers: { Authorization: 'KakaoAK ' + kakaoKey }
   });
-  if (!resp.ok) throw new Error(`Kakao ${resp.status}`);
+  if (!resp.ok) throw new Error('Kakao ' + String(resp.status));
   const data = await resp.json();
   return data.documents || [];
 }
@@ -348,10 +340,10 @@ async function fetchKakaoKeywordOnce(node, keyword, kakaoKey, apiCalls) {
     page: '1',
     sort: 'distance'
   });
-  const resp = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?${params}`, {
-    headers: { Authorization: `KakaoAK ${kakaoKey}` }
+  const resp = await fetch('https://dapi.kakao.com/v2/local/search/keyword.json?' + params.toString(), {
+    headers: { Authorization: 'KakaoAK ' + kakaoKey }
   });
-  if (!resp.ok) throw new Error(`Kakao ${resp.status}`);
+  if (!resp.ok) throw new Error('Kakao ' + String(resp.status));
   const data = await resp.json();
   return data.documents || [];
 }
@@ -393,7 +385,7 @@ async function enrichWithGooglePlaces(place, googleKey, apiCalls) {
         'X-Goog-FieldMask': GOOGLE_FIELD_MASK
       },
       body: JSON.stringify({
-        textQuery: `${place.name} ${place.zone}`,
+        textQuery: place.name + ' ' + place.zone,
         languageCode: 'ko',
         maxResultCount: 1,
         locationBias: {
@@ -405,12 +397,12 @@ async function enrichWithGooglePlaces(place, googleKey, apiCalls) {
       })
     });
     if (!resp.ok) {
-      return { place: null, error: `Google HTTP ${resp.status}` };
+      return { place: null, error: 'Google HTTP ' + String(resp.status) };
     }
     const data = await resp.json();
-    return { place: data?.places?.[0] || null, error: null };
+    return { place: (data && data.places ? data.places[0] : null), error: null };
   } catch (e) {
-    return { place: null, error: e?.message || 'Google fetch error' };
+    return { place: null, error: (e && e.message) || 'Google fetch error' };
   }
 }
 
@@ -456,9 +448,9 @@ async function runBatched(items, concurrency, fn) {
   await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker));
 }
 
-function jsonResponse(data, status = 200) {
+function jsonResponse(data, status) {
   return new Response(JSON.stringify(data), {
-    status,
+    status: status || 200,
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': 'no-store'
