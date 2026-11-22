@@ -1,8 +1,7 @@
+```javascript
 // Cloudflare Pages Function: POST /api/route-search
-// 3-레이어 하이브리드 파이프라인:
-// 1) 카카오 로컬 지오코딩 + 카카오모빌리티 자동차 길찾기 폴리라인 추출
-// 2) 도로 유형별(도심/고속도로 IC) 적응형 샘플링 + 카카오 로컬(카테고리/메뉴 키워드) + TourAPI 실시간 수집
-// 3) 1차 거리·IC 컷 후 Google Places API (New) Enterprise FieldMask로 평점·평가 수·정규 영업시간 결합
+// Cloudflare 무료 플랜 서브요청 한도(요청당 최대 50회)를 엄격히 준수하는 3-레이어 파이프라인:
+// - 지오코딩 2회 + 길찾기 1회 + 카카오 로컬 최대 18회(6구간 x 3카테고리) + Google 평점 보강 최대 22회 = 최대 43회 (< 50회)
 
 const HIGHWAY_PATTERN = /(고속도로|도시고속|강변북로|올림픽대로|내부순환|외곽순환|제2경인|경인고속|대교|터널)/;
 const GOOGLE_FIELD_MASK = [
@@ -18,8 +17,6 @@ export async function onRequestPost(context) {
   const { request, env } = context;
   const kakaoKey = env.KAKAO_REST_API_KEY;
   const googleKey = env.GOOGLE_PLACES_API_KEY || '';
-  const tourKey = env.TOUR_API_KEY || '';
-  const maxGoogleEnrich = Math.min(80, parseInt(env.MAX_GOOGLE_ENRICH_PER_SEARCH || '35', 10) || 35);
 
   if (!kakaoKey) {
     return jsonResponse({ error: 'KAKAO_REST_API_KEY 환경변수가 설정되지 않았습니다.' }, 500);
@@ -46,7 +43,7 @@ export async function onRequestPost(context) {
       return jsonResponse({ error: '출발지와 목적지를 모두 입력해 주세요.' }, 400);
     }
 
-    // 1. Geocode Origin & Destination
+    // 1. Geocode Origin & Destination (2 subrequests)
     const [origin, destination] = await Promise.all([
       geocodeKakao(originQuery, kakaoKey, apiCalls),
       geocodeKakao(destQuery, kakaoKey, apiCalls)
@@ -55,7 +52,7 @@ export async function onRequestPost(context) {
     if (!origin) return jsonResponse({ error: `출발지를 찾을 수 없습니다: ${originQuery}` }, 404);
     if (!destination) return jsonResponse({ error: `목적지를 찾을 수 없습니다: ${destQuery}` }, 404);
 
-    // 2. Driving Route Polyline (Kakao Mobility Directions)
+    // 2. Driving Route Polyline (1 subrequest)
     const dirParams = new URLSearchParams({
       origin: `${origin.lng},${origin.lat}`,
       destination: `${destination.lng},${destination.lat}`,
@@ -79,63 +76,48 @@ export async function onRequestPost(context) {
     const totalDurationSec = mainRoute.summary?.duration || 0;
     const { polyline, roadPoints } = extractRoutePoints(mainRoute);
 
-    // 3. Adaptive Corridor & IC Sampling
-    const samplingNodes = buildAdaptiveSamplingNodes(roadPoints, totalDurationSec);
+    // 3. Adaptive Corridor & IC Sampling (strictly max 6 well-spaced nodes for Cloudflare 50-subrequest safety)
+    const samplingNodes = buildAdaptiveSamplingNodes(roadPoints, 6);
 
-    // 4. Parallel Place Discovery (Kakao Local + Optional TourAPI)
+    // 4. Parallel Kakao Local Discovery (max 6*3 = 18 subrequests, or 6 when keyword is provided)
     const placeMap = new Map();
-    let failedNodes = 0;
+    const failedNodeIdx = new Set();
 
     const kakaoTasks = [];
-    for (const node of samplingNodes) {
+    samplingNodes.forEach((node, idx) => {
       if (keyword) {
         kakaoTasks.push(
-          fetchKakaoKeyword(node, keyword, kakaoKey, apiCalls)
+          fetchKakaoKeywordOnce(node, keyword, kakaoKey, apiCalls)
             .then((docs) => docs.forEach((doc) => mergeKakaoDoc(placeMap, doc, inferCategory(doc))))
-            .catch(() => { failedNodes += 1; })
+            .catch(() => { failedNodeIdx.add(idx); })
         );
       } else {
         const codes = [];
         if (categories.includes('food')) codes.push({ code: 'FD6', cat: 'food' });
         if (categories.includes('cafe')) codes.push({ code: 'CE7', cat: 'cafe' });
-        if (categories.includes('play')) {
-          codes.push({ code: 'AT4', cat: 'play' });
-          codes.push({ code: 'CT1', cat: 'play' });
-        }
+        if (categories.includes('play')) codes.push({ code: 'AT4', cat: 'play' });
+
         for (const { code, cat } of codes) {
           kakaoTasks.push(
-            fetchKakaoCategory(node, code, kakaoKey, apiCalls)
+            fetchKakaoCategoryOnce(node, code, kakaoKey, apiCalls)
               .then((docs) => docs.forEach((doc) => mergeKakaoDoc(placeMap, doc, cat)))
-              .catch(() => { failedNodes += 1; })
+              .catch(() => { failedNodeIdx.add(idx); })
           );
         }
       }
-    }
+    });
 
-    // Optional TourAPI for attractions when keyword is empty or play is selected
-    const tourTasks = [];
-    if (tourKey && categories.includes('play') && !keyword) {
-      const sparseNodes = samplingNodes.filter((_, idx) => idx % 2 === 0).slice(0, 5);
-      for (const node of sparseNodes) {
-        tourTasks.push(
-          fetchTourApiNearby(node, tourKey, apiCalls)
-            .then((items) => items.forEach((item) => mergeTourItem(placeMap, item)))
-            .catch(() => {})
-        );
-      }
-    }
-
-    await Promise.all([...kakaoTasks, ...tourTasks]);
+    await Promise.all(kakaoTasks);
 
     // 5. Stage 1 Fast Corridor Geometry & IC-Trap Scoring
     const allCandidates = Array.from(placeMap.values()).map((p) => {
       const nearest = findNearestRoadPoint(p.lat, p.lng, roadPoints);
       const directKm = Number(nearest.distKm.toFixed(2));
       const progressMin = Math.round((nearest.progressRatio * totalDurationSec) / 60);
-      const icTrap = nearest.isHighway && directKm > 1.1;
+      const icTrap = nearest.isHighway && directKm > 1.2;
       const estimatedDetourMin = Math.max(
         2,
-        Math.round(directKm * 3.6 + (icTrap ? 11 : 1.5))
+        Math.round(directKm * 3.5 + (icTrap ? 11 : 1.5))
       );
       return {
         ...p,
@@ -148,14 +130,17 @@ export async function onRequestPost(context) {
       };
     });
 
-    // Keep candidates within reasonable 5km corridor and sort by detour
     allCandidates.sort((a, b) => a.detourMin - b.detourMin);
-    const corridorPlaces = allCandidates.filter((p) => p.directKm <= 5.0);
+    const corridorPlaces = allCandidates.filter((p) => p.directKm <= 5.5);
 
-    // 6. Stage 2 Google Places API (New) Enterprise Rating & Opening Hours Enrichment
-    if (enrichRatings && corridorPlaces.length > 0) {
-      const targets = corridorPlaces.slice(0, maxGoogleEnrich);
-      await runBatched(targets, 6, async (place) => {
+    // 6. Stage 2 Google Places API (New) Enrichment within remaining subrequest budget (<= 45 total)
+    const usedSubrequests = apiCalls.kakaoLocal + apiCalls.kakaoDirections;
+    const googleBudget = Math.max(0, Math.min(24, 45 - usedSubrequests));
+
+    if (enrichRatings && googleBudget > 0 && corridorPlaces.length > 0) {
+      // Pick balanced targets across food, cafe, play so every tab gets ratings
+      const targets = pickBalancedTargets(corridorPlaces, googleBudget);
+      await runBatched(targets, 5, async (place) => {
         const g = await enrichWithGooglePlaces(place, googleKey, apiCalls);
         if (g) {
           place.googlePlaceId = g.id || null;
@@ -166,7 +151,7 @@ export async function onRequestPost(context) {
             place.hoursText = (g.regularOpeningHours.weekdayDescriptions || []).join(' / ') || place.hoursText;
             place.googlePeriods = g.regularOpeningHours.periods || null;
           }
-          place.source = place.source.includes('TourAPI') ? 'TourAPI + Google' : '카카오 로컬 + Google';
+          place.source = '카카오 로컬 + Google';
         }
       });
     }
@@ -185,8 +170,8 @@ export async function onRequestPost(context) {
       samplingNodes,
       coverage: {
         totalNodes: samplingNodes.length,
-        completedNodes: Math.max(0, samplingNodes.length - failedNodes),
-        failedNodes,
+        completedNodes: Math.max(0, samplingNodes.length - failedNodeIdx.size),
+        failedNodes: failedNodeIdx.size,
         totalFound: corridorPlaces.length,
         ratingMatched: matchedCount,
         unrated: corridorPlaces.length - matchedCount,
@@ -200,8 +185,33 @@ export async function onRequestPost(context) {
   }
 }
 
+function pickBalancedTargets(places, budget) {
+  const byCat = { food: [], cafe: [], play: [] };
+  for (const p of places) {
+    if (byCat[p.category]) byCat[p.category].push(p);
+  }
+  const picked = [];
+  const used = new Set();
+  const order = ['food', 'cafe', 'play'];
+  let idx = 0;
+  while (picked.length < budget) {
+    let added = false;
+    for (const cat of order) {
+      if (picked.length >= budget) break;
+      const item = byCat[cat][idx];
+      if (item && !used.has(item.id)) {
+        used.add(item.id);
+        picked.push(item);
+        added = true;
+      }
+    }
+    if (!added) break;
+    idx += 1;
+  }
+  return picked;
+}
+
 async function geocodeKakao(query, kakaoKey, apiCalls) {
-  // Try keyword search first (handles POI names like "인천공항 제1여객터미널" and addresses)
   apiCalls.kakaoLocal += 1;
   const kwUrl = `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(query)}&size=1`;
   const kwResp = await fetch(kwUrl, { headers: { Authorization: `KakaoAK ${kakaoKey}` } });
@@ -217,7 +227,6 @@ async function geocodeKakao(query, kakaoKey, apiCalls) {
       };
     }
   }
-  // Fallback to address search
   apiCalls.kakaoLocal += 1;
   const addrUrl = `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(query)}&size=1`;
   const addrResp = await fetch(addrUrl, { headers: { Authorization: `KakaoAK ${kakaoKey}` } });
@@ -264,131 +273,83 @@ function extractRoutePoints(route) {
     pt.progressRatio = pt.cumulativeM / totalM;
   }
 
-  // Downsample polyline for lighter map rendering while preserving shape
-  const step = Math.max(1, Math.floor(polyline.length / 220));
+  const step = Math.max(1, Math.floor(polyline.length / 200));
   const slimPolyline = polyline.filter((_, idx) => idx % step === 0 || idx === polyline.length - 1);
   return { polyline: slimPolyline, roadPoints };
 }
 
-function buildAdaptiveSamplingNodes(roadPoints) {
+function buildAdaptiveSamplingNodes(roadPoints, maxNodes = 6) {
   if (roadPoints.length === 0) return [];
-  const nodes = [];
-  let lastAdded = null;
-
-  for (let i = 0; i < roadPoints.length; i++) {
-    const pt = roadPoints[i];
-    const prev = i > 0 ? roadPoints[i - 1] : null;
-    const isTransition = prev && prev.isHighway !== pt.isHighway; // Highway IC entry/exit transition
-
-    if (!lastAdded) {
-      nodes.push({
-        name: pt.roadName || '출발 구간',
-        lat: pt.lat,
-        lng: pt.lng,
-        radius: 2200,
-        type: pt.isHighway ? 'ic' : 'urban'
-      });
-      lastAdded = pt;
-      continue;
-    }
-
-    const distKm = haversineKm(lastAdded.lat, lastAdded.lng, pt.lat, pt.lng);
-    // Prioritize IC transition points; use wider interval on highways, tighter on urban roads
-    const thresholdKm = isTransition ? 1.8 : (pt.isHighway ? 6.5 : 3.5);
-    if (distKm >= thresholdKm && nodes.length < 14) {
-      nodes.push({
-        name: pt.roadName || (isTransition ? '고속도로 IC 인근' : '경로 구간'),
-        lat: pt.lat,
-        lng: pt.lng,
-        radius: pt.isHighway || isTransition ? 3200 : 2300,
-        type: pt.isHighway || isTransition ? 'ic' : 'urban'
-      });
-      lastAdded = pt;
-    }
+  if (roadPoints.length <= maxNodes) {
+    return roadPoints.map((pt, i) => ({
+      name: pt.roadName || `구간 ${i + 1}`,
+      lat: pt.lat,
+      lng: pt.lng,
+      radius: 3000,
+      type: pt.isHighway ? 'ic' : 'urban'
+    }));
   }
 
-  // Always include destination vicinity
-  const endPt = roadPoints[roadPoints.length - 1];
-  if (lastAdded && haversineKm(lastAdded.lat, lastAdded.lng, endPt.lat, endPt.lng) > 1.5) {
+  // Evenly distribute 6 anchor points by cumulative route progress (0%, 20%, 40%, 60%, 80%, 100%)
+  const nodes = [];
+  for (let k = 0; k < maxNodes; k++) {
+    const targetRatio = k / (maxNodes - 1);
+    let bestPt = roadPoints[0];
+    let bestDiff = 999;
+    for (let i = 0; i < roadPoints.length; i++) {
+      const diff = Math.abs(roadPoints[i].progressRatio - targetRatio);
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        bestPt = roadPoints[i];
+      }
+    }
     nodes.push({
-      name: '목적지 인근',
-      lat: endPt.lat,
-      lng: endPt.lng,
-      radius: 2500,
-      type: 'urban'
+      name: bestPt.roadName || (k === 0 ? '출발권' : k === maxNodes - 1 ? '목적지권' : `경로 ${k + 1}구간`),
+      lat: bestPt.lat,
+      lng: bestPt.lng,
+      radius: bestPt.isHighway ? 4000 : 3000,
+      type: bestPt.isHighway ? 'ic' : 'urban'
     });
   }
-
   return nodes;
 }
 
-async function fetchKakaoCategory(node, categoryCode, kakaoKey, apiCalls) {
-  const results = [];
-  for (let page = 1; page <= 2; page++) {
-    apiCalls.kakaoLocal += 1;
-    const params = new URLSearchParams({
-      category_group_code: categoryCode,
-      x: String(node.lng),
-      y: String(node.lat),
-      radius: String(node.radius),
-      size: '15',
-      page: String(page),
-      sort: 'distance'
-    });
-    const resp = await fetch(`https://dapi.kakao.com/v2/local/search/category.json?${params}`, {
-      headers: { Authorization: `KakaoAK ${kakaoKey}` }
-    });
-    if (!resp.ok) break;
-    const data = await resp.json();
-    results.push(...(data.documents || []));
-    if (data.meta?.is_end) break;
-  }
-  return results;
-}
-
-async function fetchKakaoKeyword(node, keyword, kakaoKey, apiCalls) {
-  const results = [];
-  for (let page = 1; page <= 2; page++) {
-    apiCalls.kakaoLocal += 1;
-    const params = new URLSearchParams({
-      query: keyword,
-      x: String(node.lng),
-      y: String(node.lat),
-      radius: String(Math.min(5000, node.radius + 800)),
-      size: '15',
-      page: String(page),
-      sort: 'distance'
-    });
-    const resp = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?${params}`, {
-      headers: { Authorization: `KakaoAK ${kakaoKey}` }
-    });
-    if (!resp.ok) break;
-    const data = await resp.json();
-    results.push(...(data.documents || []));
-    if (data.meta?.is_end) break;
-  }
-  return results;
-}
-
-async function fetchTourApiNearby(node, tourKey, apiCalls) {
-  apiCalls.tourApi += 1;
+async function fetchKakaoCategoryOnce(node, categoryCode, kakaoKey, apiCalls) {
+  apiCalls.kakaoLocal += 1;
   const params = new URLSearchParams({
-    serviceKey: tourKey,
-    numOfRows: '10',
-    pageNo: '1',
-    MobileOS: 'ETC',
-    MobileApp: 'Gilmat',
-    _type: 'json',
-    mapX: String(node.lng),
-    mapY: String(node.lat),
-    radius: String(Math.min(4000, node.radius)),
-    contentTypeId: '12' // 관광지
+    category_group_code: categoryCode,
+    x: String(node.lng),
+    y: String(node.lat),
+    radius: String(node.radius),
+    size: '15',
+    page: '1',
+    sort: 'distance'
   });
-  const resp = await fetch(`https://apis.data.go.kr/B551011/KorService2/locationBasedList2?${params}`);
-  if (!resp.ok) return [];
+  const resp = await fetch(`https://dapi.kakao.com/v2/local/search/category.json?${params}`, {
+    headers: { Authorization: `KakaoAK ${kakaoKey}` }
+  });
+  if (!resp.ok) throw new Error(`Kakao category ${resp.status}`);
   const data = await resp.json();
-  const items = data?.response?.body?.items?.item;
-  return Array.isArray(items) ? items : [];
+  return data.documents || [];
+}
+
+async function fetchKakaoKeywordOnce(node, keyword, kakaoKey, apiCalls) {
+  apiCalls.kakaoLocal += 1;
+  const params = new URLSearchParams({
+    query: keyword,
+    x: String(node.lng),
+    y: String(node.lat),
+    radius: String(Math.min(5000, node.radius + 1000)),
+    size: '15',
+    page: '1',
+    sort: 'distance'
+  });
+  const resp = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?${params}`, {
+    headers: { Authorization: `KakaoAK ${kakaoKey}` }
+  });
+  if (!resp.ok) throw new Error(`Kakao keyword ${resp.status}`);
+  const data = await resp.json();
+  return data.documents || [];
 }
 
 function inferCategory(doc) {
@@ -399,8 +360,7 @@ function inferCategory(doc) {
 }
 
 function mergeKakaoDoc(placeMap, doc, category) {
-  if (!doc || !doc.id) return;
-  if (placeMap.has(doc.id)) return;
+  if (!doc || !doc.id || placeMap.has(doc.id)) return;
   const catParts = (doc.category_name || '').split('>').map((s) => s.trim()).filter(Boolean);
   const tags = catParts.slice(1, 4);
   const addr = doc.road_address_name || doc.address_name || '';
@@ -427,34 +387,6 @@ function mergeKakaoDoc(placeMap, doc, category) {
   });
 }
 
-function mergeTourItem(placeMap, item) {
-  const id = `tour_${item.contentid}`;
-  if (!item.contentid || placeMap.has(id)) return;
-  const lat = parseFloat(item.mapy);
-  const lng = parseFloat(item.mapx);
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-
-  placeMap.set(id, {
-    id,
-    name: item.title,
-    category: 'play',
-    zone: (item.addr1 || '').split(' ').slice(0, 3).join(' ') || '관광지',
-    address: item.addr1 || '',
-    lat,
-    lng,
-    phone: item.tel || '',
-    kakaoUrl: '',
-    rating: null,
-    reviews: 0,
-    freeParking: false,
-    parkingNote: '관광지 상세에서 확인',
-    tags: ['관광명소', 'TourAPI'],
-    source: 'TourAPI (Google 미확인)',
-    hoursText: '운영시간 상세 확인 권장',
-    googlePeriods: null
-  });
-}
-
 async function enrichWithGooglePlaces(place, googleKey, apiCalls) {
   apiCalls.googleEnterprise += 1;
   try {
@@ -472,7 +404,7 @@ async function enrichWithGooglePlaces(place, googleKey, apiCalls) {
         locationBias: {
           circle: {
             center: { latitude: place.lat, longitude: place.lng },
-            radius: 250.0
+            radius: 300.0
           }
         }
       })
@@ -487,7 +419,7 @@ async function enrichWithGooglePlaces(place, googleKey, apiCalls) {
 
 function findNearestRoadPoint(lat, lng, roadPoints) {
   let best = { distKm: 999, progressRatio: 0.5, isHighway: false, roadName: '' };
-  const step = Math.max(1, Math.floor(roadPoints.length / 260));
+  const step = Math.max(1, Math.floor(roadPoints.length / 220));
   for (let i = 0; i < roadPoints.length; i += step) {
     const pt = roadPoints[i];
     const d = haversineKm(lat, lng, pt.lat, pt.lng);
@@ -536,3 +468,4 @@ function jsonResponse(data, status = 200) {
     }
   });
 }
+```
