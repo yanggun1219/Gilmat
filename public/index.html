@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#1D4ED8">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <title>길맛 — 경로상 맛집·카페·놀거리 실시간 탐색</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #F8FAFC;
+      color: #0F172A;
+    }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    .gm-pin {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      padding: 3px 7px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #FFFFFF;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.28);
+      border: 2px solid #FFFFFF;
+      white-space: nowrap;
+      transition: transform 0.15s ease;
+    }
+    .gm-pin:hover, .gm-pin.selected {
+      transform: scale(1.16);
+      z-index: 1000 !important;
+      border-color: #0F172A;
+    }
+    .gm-pin-food { background: #D97706; }
+    .gm-pin-cafe { background: #2563EB; }
+    .gm-pin-play { background: #0F766E; }
+    .gm-pin-unrated { background: #64748B; }
+    .gm-pin-trap { background: #DC2626; opacity: 0.72; }
+
+    .gm-endpoint {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #FFFFFF;
+      border: 2.5px solid #FFFFFF;
+      box-shadow: 0 3px 8px rgba(15, 23, 42, 0.35);
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      min-height: 320px;
+      z-index: 1;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Top Navigation & Live Search Bar (non-sticky on narrow mobile, sticky on lg+) -->
+  <header class="bg-white border-b border-slate-200 relative lg:sticky lg:top-0 z-[1000]">
+    <div class="px-3 sm:px-5 py-2.5 flex flex-wrap items-center justify-between gap-2.5">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-blue-700 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+          길
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <h1 class="text-base font-bold text-slate-900 tracking-tight">길맛</h1>
+            <span class="text-[11px] font-semibold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">v2.0 실서비스</span>
+          </div>
+          <p class="text-[11px] text-slate-500 hidden sm:block">경로상 모든 맛집·카페·놀거리 실시간 탐색</p>
+        </div>
+      </div>
+
+      <!-- Live Route & Menu Search Form -->
+      <div class="flex flex-wrap items-center gap-1.5 flex-1 max-w-3xl">
+        <div class="flex items-center bg-slate-100 rounded-lg px-2.5 py-1.5 flex-1 min-w-[130px] border border-slate-200 focus-within:border-blue-500 focus-within:bg-white">
+          <span class="w-4 h-4 rounded-full bg-blue-700 text-white text-[10px] font-bold flex items-center justify-center mr-1.5 shrink-0">A</span>
+          <input id="originInput" type="text" value="서울 성북구 오패산로 46" placeholder="출발지" aria-label="출발지"
+            class="bg-transparent text-xs sm:text-sm font-medium text-slate-800 w-full outline-none">
+        </div>
+        <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
+        <div class="flex items-center bg-slate-100 rounded-lg px-2.5 py-1.5 flex-1 min-w-[130px] border border-slate-200 focus-within:border-blue-500 focus-within:bg-white">
+          <span class="w-4 h-4 rounded-full bg-teal-700 text-white text-[10px] font-bold flex items-center justify-center mr-1.5 shrink-0">B</span>
+          <input id="destInput" type="text" value="인천국제공항 제1여객터미널" placeholder="목적지" aria-label="목적지"
+            class="bg-transparent text-xs sm:text-sm font-medium text-slate-800 w-full outline-none">
+        </div>
+        <div class="flex items-center bg-slate-100 rounded-lg px-2.5 py-1.5 w-full sm:w-44 border border-slate-200 focus-within:border-blue-500 focus-within:bg-white">
+          <i data-lucide="utensils" class="w-3.5 h-3.5 text-slate-400 mr-1.5 shrink-0"></i>
+          <input id="routeMenuInput" type="text" placeholder="메뉴(선택: 고등어, 막국수)" aria-label="경로 검색 메뉴"
+            class="bg-transparent text-xs sm:text-sm font-medium text-slate-800 w-full outline-none">
+        </div>
+        <div class="flex items-center gap-1 bg-slate-100 rounded-lg px-2 py-1.5 border border-slate-200">
+          <select id="daySelect" aria-label="출발 요일" class="bg-transparent text-xs font-semibold text-slate-700 outline-none cursor-pointer">
+            <option value="0">일</option>
+            <option value="1">월</option>
+            <option value="2">화</option>
+            <option value="3">수</option>
+            <option value="4">목</option>
+            <option value="5">금</option>
+            <option value="6">토</option>
+          </select>
+          <input id="departTimeInput" type="time" aria-label="출발 시각"
+            class="bg-transparent text-xs font-semibold text-slate-800 outline-none cursor-pointer">
+        </div>
+        <button id="scanRouteBtn" type="button"
+          class="bg-blue-700 hover:bg-blue-800 active:scale-[0.98] disabled:opacity-60 text-white text-xs sm:text-sm font-semibold px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 transition shadow-sm shrink-0">
+          <i data-lucide="radar" class="w-3.5 h-3.5"></i>
+          <span id="scanBtnLabel">실시간 탐색</span>
+        </button>
+      </div>
+
+      <button id="openQuotaBtn" type="button"
+        class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-semibold px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition">
+        <i data-lucide="gauge" class="w-3.5 h-3.5"></i>
+        <span>쿼터</span>
+      </button>
+    </div>
+
+    <!-- Coverage Status Bar -->
+    <div class="bg-slate-50 border-t border-slate-200 px-3 sm:px-5 py-1.5 flex flex-wrap items-center justify-between gap-2 text-[11px] sm:text-xs text-slate-600">
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span class="inline-flex items-center gap-1 font-semibold text-slate-800">
+          <span id="statusDot" class="w-2 h-2 rounded-full bg-slate-400"></span>
+          <span id="coverageText">출발지·목적지를 입력하고 [실시간 탐색]을 눌러 주세요.</span>
+        </span>
+        <span id="pipelineStats" class="text-slate-500"></span>
+      </div>
+      <div class="flex items-center gap-3">
+        <label class="inline-flex items-center gap-1.5 cursor-pointer select-none font-medium text-slate-700">
+          <input id="showIcLayerChk" type="checkbox" checked class="rounded border-slate-300 text-blue-700 focus:ring-blue-500">
+          <span>IC 샘플링 반경</span>
+        </label>
+        <button id="exportJsonBtn" type="button" class="text-blue-700 hover:text-blue-900 font-semibold inline-flex items-center gap-1">
+          <i data-lucide="download" class="w-3 h-3"></i>
+          <span>JSON 저장</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <div class="flex-1 w-full bg-white">
+    <main class="flex flex-col lg:flex-row lg:h-[calc(100vh-108px)]">
+
+      <!-- Left: Isolated Map Pane -->
+      <section class="map-pane relative z-0 isolate overflow-hidden w-full lg:w-[57%] h-[340px] lg:h-full border-b lg:border-b-0 lg:border-r border-slate-200 shrink-0">
+        <div id="map"></div>
+
+        <div class="absolute bottom-3 left-3 z-[400] bg-white/95 backdrop-blur-sm border border-slate-200 rounded-lg px-2.5 py-1.5 shadow-sm flex flex-wrap items-center gap-2.5 text-[11px] font-medium text-slate-700">
+          <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-600"></span>음식점</span>
+          <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>카페</span>
+          <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-teal-700"></span>놀거리</span>
+          <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-slate-500"></span>평점 미확인</span>
+        </div>
+
+        <button id="fitRouteBtn" type="button" title="전체 경로 보기"
+          class="absolute top-3 right-3 z-[400] bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold shadow-sm flex items-center gap-1">
+          <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
+          <span>전체 경로</span>
+        </button>
+      </section>
+
+      <!-- Right: Filter & Results Pane -->
+      <section class="w-full lg:w-[43%] flex flex-col lg:h-full bg-white">
+        <div class="p-3 sm:p-4 border-b border-slate-200 bg-white space-y-2.5 shrink-0">
+          <!-- Category Pills + Favorites -->
+          <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+            <button type="button" data-cat="all" class="cat-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-900 text-white shrink-0">전체</button>
+            <button type="button" data-cat="food" class="cat-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 shrink-0">음식점</button>
+            <button type="button" data-cat="cafe" class="cat-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 shrink-0">카페</button>
+            <button type="button" data-cat="play" class="cat-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 shrink-0">놀거리</button>
+            <button type="button" id="favOnlyBtn" class="px-3 py-1.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 shrink-0 inline-flex items-center gap-1">
+              <i data-lucide="heart" class="w-3 h-3"></i>
+              <span>찜 (<span id="favCount">0</span>)</span>
+            </button>
+          </div>
+
+          <!-- Local Result Filter + Sort -->
+          <div class="flex items-center gap-2">
+            <div class="relative flex-1">
+              <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2"></i>
+              <input id="filterInput" type="text" placeholder="결과 내 재검색 (상호·지역·업종)"
+                class="w-full pl-8 pr-7 py-1.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-blue-500 outline-none">
+              <button id="clearFilterBtn" type="button" class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+            <select id="sortSelect" aria-label="정렬 기준"
+              class="text-xs font-semibold bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 outline-none cursor-pointer">
+              <option value="detour">우회시간순</option>
+              <option value="rating">Google 평점순</option>
+              <option value="reviews">평가수순</option>
+              <option value="progress">경로 진행순</option>
+            </select>
+          </div>
+
+          <!-- Detour Slider + Rating/Review Filters -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-0.5">
+            <div class="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2">
+              <div class="flex items-center justify-between text-xs mb-1">
+                <span class="font-semibold text-slate-700">최대 추가 이동</span>
+                <span id="detourValLabel" class="font-bold text-blue-700">+15분 이내</span>
+              </div>
+              <input id="detourSlider" type="range" min="5" max="30" step="1" value="15"
+                class="w-full accent-blue-700 h-1.5 bg-slate-200 rounded-lg cursor-pointer">
+            </div>
+
+            <div class="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 flex flex-col justify-between">
+              <div class="flex items-center justify-between gap-1 text-[11px]">
+                <span class="font-semibold text-slate-700">Google 평점</span>
+                <div class="flex items-center gap-1">
+                  <button type="button" data-rating="0" class="rating-btn px-1.5 py-0.5 rounded font-semibold bg-blue-700 text-white">전체</button>
+                  <button type="button" data-rating="4.3" class="rating-btn px-1.5 py-0.5 rounded font-semibold bg-white border border-slate-200 text-slate-600">4.3+</button>
+                  <button type="button" data-rating="4.5" class="rating-btn px-1.5 py-0.5 rounded font-semibold bg-white border border-slate-200 text-slate-600">4.5+</button>
+                  <button type="button" data-rating="4.8" class="rating-btn px-1.5 py-0.5 rounded font-semibold bg-white border border-slate-200 text-slate-600">4.8+</button>
+                </div>
+              </div>
+              <div class="flex items-center justify-between gap-1 text-[11px] mt-1.5">
+                <span class="font-semibold text-slate-700">최소 평가수</span>
+                <div class="flex items-center gap-1">
+                  <button type="button" data-reviews="0" class="review-btn px-1.5 py-0.5 rounded font-semibold bg-blue-700 text-white">전체</button>
+                  <button type="button" data-reviews="50" class="review-btn px-1.5 py-0.5 rounded font-semibold bg-white border border-slate-200 text-slate-600">50+</button>
+                  <button type="button" data-reviews="100" class="review-btn px-1.5 py-0.5 rounded font-semibold bg-white border border-slate-200 text-slate-600">100+</button>
+                  <button type="button" data-reviews="200" class="review-btn px-1.5 py-0.5 rounded font-semibold bg-white border border-slate-200 text-slate-600">200+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Driving Toggles -->
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-slate-700 pt-0.5">
+            <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+              <input id="openAtEtaChk" type="checkbox" class="rounded border-slate-300 text-blue-700 focus:ring-blue-500">
+              <span class="font-medium">도착 시각 영업 중</span>
+            </label>
+            <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+              <input id="includeUnratedChk" type="checkbox" checked class="rounded border-slate-300 text-blue-700 focus:ring-blue-500">
+              <span class="font-medium">평점 미확인 포함</span>
+            </label>
+            <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+              <input id="excludeIcTrapChk" type="checkbox" checked class="rounded border-slate-300 text-blue-700 focus:ring-blue-500">
+              <span class="font-medium">IC 오탐 제외</span>
+            </label>
+            <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+              <input id="enrichRatingsChk" type="checkbox" checked class="rounded border-slate-300 text-blue-700 focus:ring-blue-500">
+              <span class="font-medium">Google 평점 결합</span>
+            </label>
+          </div>
+
+          <div class="flex items-center justify-between pt-1 border-t border-slate-100 text-xs">
+            <span id="resultCountLabel" class="font-bold text-slate-900">탐색 대기 중</span>
+            <button id="resetFiltersBtn" type="button" class="text-slate-500 hover:text-blue-700 font-medium">필터 초기화</button>
+          </div>
+        </div>
+
+        <div id="placesList" class="flex-1 overflow-y-auto divide-y divide-slate-100 p-2 sm:p-3 space-y-2 bg-slate-50/70">
+          <div class="text-center py-12 px-4 space-y-2">
+            <p class="text-sm font-bold text-slate-800">실시간 경로 탐색 준비 완료</p>
+            <p class="text-xs text-slate-500 leading-relaxed">상단에서 출발지·목적지와 원하는 메뉴(선택)를 입력하고 <strong>[실시간 탐색]</strong>을 누르면<br>카카오 로컬·길찾기·Google Places에서 경로 전체 후보를 즉시 불러옵니다.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Place Detail Drawer (with background scroll lock) -->
+  <div id="detailModal" class="hidden fixed inset-0 z-[1100] bg-slate-900/40 backdrop-blur-[1px] flex items-end sm:items-center justify-center sm:justify-end overscroll-none touch-none">
+    <div class="bg-white w-full sm:w-[430px] max-h-[88vh] sm:h-full sm:max-h-full rounded-t-2xl sm:rounded-none shadow-2xl flex flex-col overflow-hidden">
+      <div class="p-4 border-b border-slate-200 flex items-start justify-between gap-3">
+        <div>
+          <div class="flex items-center gap-1.5 mb-1">
+            <span id="detailCatBadge" class="text-[11px] font-bold px-2 py-0.5 rounded-full"></span>
+            <span id="detailSourceBadge" class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600"></span>
+          </div>
+          <h2 id="detailName" class="text-lg font-bold text-slate-900 leading-snug"></h2>
+          <p id="detailAddr" class="text-xs text-slate-500 mt-0.5"></p>
+        </div>
+        <button id="closeDetailBtn" type="button" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div id="detailBody" class="p-4 overflow-y-auto flex-1 space-y-4 text-sm overscroll-contain touch-pan-y"></div>
+      <div class="p-3.5 border-t border-slate-200 bg-slate-50 space-y-2">
+        <div class="text-[11px] font-semibold text-slate-500">내비게이션 원탭 경유지·목적지 전송</div>
+        <div id="detailNavActions" class="grid grid-cols-4 gap-1.5"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Monthly Quota Monitor Modal -->
+  <div id="quotaModal" class="hidden fixed inset-0 z-[1100] bg-slate-900/45 backdrop-blur-[1px] flex items-center justify-center p-3 overscroll-none touch-none">
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
+      <div class="p-4 border-b border-slate-200 flex items-center justify-between">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">월 0원 무료 쿼터 모니터</h2>
+          <p class="text-xs text-slate-500">API 키는 서버 환경변수에 안전하게 보관됩니다.</p>
+        </div>
+        <button id="closeQuotaBtn" type="button" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="p-4 space-y-3 text-xs overscroll-contain touch-pan-y">
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2.5">
+          <div>
+            <div class="flex justify-between mb-1">
+              <span class="font-medium text-slate-700">Google Places Enterprise (월 1,000건 무료)</span>
+              <span id="quotaGoogleText" class="font-mono font-bold text-blue-700">0 / 900건</span>
+            </div>
+            <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+              <div id="quotaGoogleBar" class="h-full bg-blue-700 transition-all" style="width: 0%"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between mb-1">
+              <span class="font-medium text-slate-700">카카오 로컬 REST (일 100,000건 무료)</span>
+              <span id="quotaKakaoText" class="font-mono font-bold text-teal-700">0건</span>
+            </div>
+            <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+              <div id="quotaKakaoBar" class="h-full bg-teal-600 transition-all" style="width: 1%"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between">
+              <span class="font-medium text-slate-700">카카오모빌리티 길찾기 호출</span>
+              <span id="quotaDirText" class="font-mono font-bold text-slate-800">0건</span>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center justify-between pt-1">
+          <button id="resetQuotaBtn" type="button" class="text-slate-500 hover:text-blue-700 font-semibold">이번 달 카운터 초기화</button>
+          <button id="doneQuotaBtn" type="button" class="px-4 py-1.5 bg-blue-700 text-white font-semibold rounded-lg">확인</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-[1200] bg-slate-900 text-white text-xs font-semibold px-4 py-2.5 rounded-full shadow-lg"></div>
+
+  <script>
+    function safeGet(key, fallback) {
+      try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; }
+    }
+    function safeSet(key, val) {
+      try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+    }
+
+    const now = new Date();
+    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const storedQuota = safeGet('gilmat_prod_quota', { month: currentMonthKey, googleEnterprise: 0, kakaoLocal: 0, kakaoDirections: 0 });
+    if (storedQuota.month !== currentMonthKey) {
+      storedQuota.month = currentMonthKey;
+      storedQuota.googleEnterprise = 0;
+      storedQuota.kakaoLocal = 0;
+      storedQuota.kakaoDirections = 0;
+    }
+
+    const state = {
+      route: null,
+      samplingNodes: [],
+      places: [],
+      category: 'all',
+      filterText: '',
+      maxDetour: 15,
+      minRating: 0,
+      minReviews: 0,
+      openAtEta: false,
+      includeUnrated: true,
+      excludeIcTrap: true,
+      enrichRatings: true,
+      favOnly: false,
+      sortBy: 'detour',
+      dayOfWeek: now.getDay(),
+      departTime: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
+      showIcLayer: true,
+      selectedId: null,
+      loading: false,
+      favorites: safeGet('gilmat_prod_favs', []),
+      quota: storedQuota
+    };
+
+    // Init time inputs to current local time
+    document.getElementById('daySelect').value = String(state.dayOfWeek);
+    document.getElementById('departTimeInput').value = state.departTime;
+
+    // Leaflet Map
+    const map = L.map('map', { zoomControl: true }).setView([37.54, 126.85], 11);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles &copy; Esri',
+      maxZoom: 18
+    }).addTo(map);
+
+    const routeGroup = L.layerGroup().addTo(map);
+    const icGroup = L.layerGroup().addTo(map);
+    const markerGroup = L.layerGroup().addTo(map);
+    let currentPolyline = null;
+
+    function parseTimeToMin(hhmm) {
+      const [h, m] = (hhmm || '12:00').split(':').map(n => parseInt(n, 10) || 0);
+      return h * 60 + m;
+    }
+    function formatMinToHHMM(totalMin) {
+      const m = ((totalMin % 1440) + 1440) % 1440;
+      return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+    }
+
+    function evaluateOpenStatus(place) {
+      const etaTotal = parseTimeToMin(state.departTime) + (place.progressMin || 0);
+      const etaDay = (state.dayOfWeek + Math.floor(etaTotal / 1440)) % 7;
+      const etaMin = etaTotal % 1440;
+      const etaStr = formatMinToHHMM(etaMin);
+
+      if (!Array.isArray(place.googlePeriods) || place.googlePeriods.length === 0) {
+        return { status: 'unknown', label: `${etaStr} 도착 (영업 미확인)`, etaStr, isOpen: true };
+      }
+      // 24h check
+      if (place.googlePeriods.length === 1 && !place.googlePeriods[0].close) {
+        return { status: 'open', label: `${etaStr} 도착 영업 중`, etaStr, isOpen: true };
+      }
+      for (const p of place.googlePeriods) {
+        if (!p.open) continue;
+        const oDay = p.open.day;
+        const oMin = (p.open.hour || 0) * 60 + (p.open.minute || 0);
+        const cDay = p.close ? p.close.day : oDay;
+        const cMin = p.close ? (p.close.hour || 0) * 60 + (p.close.minute || 0) : 1440;
+        if (oDay === etaDay && cDay === etaDay && etaMin >= oMin && etaMin <= cMin) {
+          return { status: 'open', label: `${etaStr} 도착 영업 중`, etaStr, isOpen: true };
+        }
+        if (oDay === etaDay && cDay !== oDay && etaMin >= oMin) {
+          return { status: 'open', label: `${etaStr} 도착 영업 중`, etaStr, isOpen: true };
+        }
+      }
+      return { status: 'closed', label: `${etaStr} 영업 종료/휴무`, etaStr, isOpen: false };
+    }
+
+    function getFilteredPlaces() {
+      const kw = state.filterText.trim().toLowerCase();
+      return state.places.filter(p => {
+        if (state.category !== 'all' && p.category !== state.category) return false;
+        if (state.favOnly && !state.favorites.includes(p.id)) return false;
+        if (state.excludeIcTrap && p.icTrap) return false;
+        if (p.detourMin > state.maxDetour) return false;
+        if (p.rating === null) {
+          if (!state.includeUnrated) return false;
+        } else {
+          if (p.rating < state.minRating) return false;
+          if (p.reviews < state.minReviews) return false;
+        }
+        if (state.openAtEta && !evaluateOpenStatus(p).isOpen) return false;
+        if (kw) {
+          const hay = [p.name, p.zone, p.address, ...(p.tags || [])].join(' ').toLowerCase();
+          if (!hay.includes(kw)) return false;
+        }
+        return true;
+      }).sort((a, b) => {
+        if (state.sortBy === 'detour') return a.detourMin - b.detourMin || (b.rating || 0) - (a.rating || 0);
+        if (state.sortBy === 'rating') return (b.rating || -1) - (a.rating || -1) || b.reviews - a.reviews;
+        if (state.sortBy === 'reviews') return b.reviews - a.reviews || (b.rating || 0) - (a.rating || 0);
+        return a.progressMin - b.progressMin;
+      });
+    }
+
+    function catMeta(cat) {
+      if (cat === 'food') return { label: '음식점', cls: 'bg-amber-100 text-amber-800', pinCls: 'gm-pin-food' };
+      if (cat === 'cafe') return { label: '카페', cls: 'bg-blue-100 text-blue-800', pinCls: 'gm-pin-cafe' };
+      return { label: '놀거리', cls: 'bg-teal-100 text-teal-800', pinCls: 'gm-pin-play' };
+    }
+
+    function renderRouteOnMap() {
+      routeGroup.clearLayers();
+      icGroup.clearLayers();
+      if (!state.route) return;
+
+      currentPolyline = L.polyline(state.route.polyline, {
+        color: '#1D4ED8', weight: 5, opacity: 0.85, lineJoin: 'round'
+      }).addTo(routeGroup);
+
+      L.marker([state.route.origin.lat, state.route.origin.lng], {
+        icon: L.divIcon({ className: '', html: '<div class="gm-endpoint" style="background:#1D4ED8">A</div>', iconSize: [28, 28], iconAnchor: [14, 14] })
+      }).addTo(routeGroup).bindTooltip(`출발: ${state.route.origin.name}`);
+
+      L.marker([state.route.destination.lat, state.route.destination.lng], {
+        icon: L.divIcon({ className: '', html: '<div class="gm-endpoint" style="background:#0F766E">B</div>', iconSize: [28, 28], iconAnchor: [14, 14] })
+      }).addTo(routeGroup).bindTooltip(`도착: ${state.route.destination.name}`);
+
+      if (state.showIcLayer) {
+        state.samplingNodes.forEach(node => {
+          L.circle([node.lat, node.lng], {
+            radius: node.radius,
+            color: node.type === 'ic' ? '#0F766E' : '#1D4ED8',
+            weight: 1.2,
+            dashArray: '4 4',
+            fillColor: node.type === 'ic' ? '#0F766E' : '#1D4ED8',
+            fillOpacity: 0.06
+          }).addTo(icGroup).bindTooltip(`${node.name} (${(node.radius / 1000).toFixed(1)}km)`, { sticky: true });
+        });
+      }
+    }
+
+    function renderAll() {
+      const filtered = getFilteredPlaces();
+      document.getElementById('favCount').textContent = state.favorites.length;
+      if (state.places.length > 0) {
+        document.getElementById('resultCountLabel').textContent = `조건 일치 ${filtered.length}곳 (제한 없이 전체 표시)`;
+      }
+
+      markerGroup.clearLayers();
+      filtered.forEach(p => {
+        const meta = catMeta(p.category);
+        const pinClass = p.icTrap ? 'gm-pin-trap' : (p.rating === null ? 'gm-pin-unrated' : meta.pinCls);
+        const ratingText = p.rating !== null ? `★${p.rating.toFixed(1)}` : '미확인';
+        const isSel = state.selectedId === p.id;
+        const icon = L.divIcon({
+          className: '',
+          html: `<div class="gm-pin ${pinClass} ${isSel ? 'selected' : ''}">${ratingText}</div>`,
+          iconSize: [52, 24],
+          iconAnchor: [26, 12]
+        });
+        L.marker([p.lat, p.lng], { icon })
+          .addTo(markerGroup)
+          .bindTooltip(`${p.name} (+${p.detourMin}분)`, { direction: 'top', offset: [0, -10] })
+          .on('click', () => selectPlace(p.id, false));
+      });
+
+      const listEl = document.getElementById('placesList');
+      if (state.places.length === 0) return;
+      if (filtered.length === 0) {
+        listEl.innerHTML = `
+          <div class="text-center py-12 px-4">
+            <p class="text-sm font-bold text-slate-700">현재 필터 조건에 맞는 장소가 없습니다.</p>
+            <p class="text-xs text-slate-500 mt-1">우회시간·평점·영업 중 필터를 완화하거나 상단 메뉴 키워드를 변경해 다시 탐색해 보세요.</p>
+          </div>
+        `;
+      } else {
+        listEl.innerHTML = filtered.map(p => {
+          const meta = catMeta(p.category);
+          const openInfo = evaluateOpenStatus(p);
+          const isFav = state.favorites.includes(p.id);
+          const isSel = state.selectedId === p.id;
+          const openBadge = openInfo.status === 'open'
+            ? `<span class="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">${openInfo.label}</span>`
+            : openInfo.status === 'unknown'
+              ? `<span class="text-[11px] font-medium text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">${openInfo.label}</span>`
+              : `<span class="text-[11px] font-semibold text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded">${openInfo.label}</span>`;
+          const ratingBlock = p.rating !== null
+            ? `<span class="font-bold text-amber-600">★ ${p.rating.toFixed(1)}</span><span class="text-slate-400 text-[11px] ml-0.5">(${p.reviews.toLocaleString()})</span>`
+            : `<span class="text-[11px] font-medium text-slate-500">Google 평점 미확인</span>`;
+
+          return `
+            <article data-id="${p.id}"
+              class="place-card bg-white rounded-xl p-3 border ${isSel ? 'border-blue-600 ring-1 ring-blue-600' : 'border-slate-200 hover:border-slate-300'} transition cursor-pointer">
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${meta.cls}">${meta.label}</span>
+                    <span class="text-[11px] font-medium text-slate-500">${p.zone}</span>
+                    ${p.detourVerified ? '<span class="text-[10px] font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">실측 우회</span>' : ''}
+                    ${p.icTrap ? '<span class="text-[10px] font-semibold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded">IC 우회 주의</span>' : ''}
+                  </div>
+                  <h3 class="text-sm font-bold text-slate-900 mt-1 truncate">${p.name}</h3>
+                </div>
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <span class="text-xs font-bold px-2 py-0.5 rounded-lg bg-blue-50 text-blue-800 border border-blue-100">+${p.detourMin}분</span>
+                  <button type="button" data-fav-id="${p.id}" aria-label="경유지 찜"
+                    class="fav-toggle-btn p-1 rounded-lg hover:bg-slate-100 ${isFav ? 'text-rose-500' : 'text-slate-300 hover:text-rose-400'}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="flex items-center justify-between gap-2 mt-2 text-xs">
+                <div class="flex items-center gap-2">
+                  ${ratingBlock}
+                  <span class="text-slate-300">|</span>
+                  <span class="text-slate-500 text-[11px]">출발 +${p.progressMin}분 지점</span>
+                </div>
+                ${openBadge}
+              </div>
+              <div class="flex flex-wrap gap-1 mt-2">
+                ${(p.tags || []).slice(0, 4).map(t => `<span class="text-[11px] text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">${t}</span>`).join('')}
+              </div>
+            </article>
+          `;
+        }).join('');
+      }
+      renderQuotaUI();
+    }
+
+    // Live API Search
+    async function runLiveRouteSearch() {
+      const origin = document.getElementById('originInput').value.trim();
+      const destination = document.getElementById('destInput').value.trim();
+      const keyword = document.getElementById('routeMenuInput').value.trim();
+
+      if (!origin || !destination) {
+        showToast('출발지와 목적지를 모두 입력해 주세요.');
+        return;
+      }
+
+      const btn = document.getElementById('scanRouteBtn');
+      const label = document.getElementById('scanBtnLabel');
+      state.loading = true;
+      btn.disabled = true;
+      label.textContent = '탐색 중...';
+      document.getElementById('statusDot').className = 'w-2 h-2 rounded-full bg-amber-500 animate-pulse';
+      document.getElementById('coverageText').textContent = '경로 계산 및 구간별 장소 수집 중...';
+
+      try {
+        const resp = await fetch('/api/route-search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            origin,
+            destination,
+            keyword,
+            categories: ['food', 'cafe', 'play'],
+            enrichRatings: state.enrichRatings && state.quota.googleEnterprise < 900
+          })
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+          throw new Error(data.error || `서버 오류 (${resp.status})`);
+        }
+
+        state.route = data.route;
+        state.samplingNodes = data.samplingNodes || [];
+        state.places = data.places || [];
+        state.selectedId = null;
+
+        // Track monthly quota usage
+        state.quota.googleEnterprise += data.apiCalls?.googleEnterprise || 0;
+        state.quota.kakaoLocal += data.apiCalls?.kakaoLocal || 0;
+        state.quota.kakaoDirections += data.apiCalls?.kakaoDirections || 0;
+        safeSet('gilmat_prod_quota', state.quota);
+
+        document.getElementById('statusDot').className = 'w-2 h-2 rounded-full bg-emerald-500';
+        document.getElementById('coverageText').textContent =
+          `구간 ${data.coverage.completedNodes}/${data.coverage.totalNodes} 완료 · ${data.route.distanceKm}km (약 ${data.route.durationMin}분)`;
+        document.getElementById('pipelineStats').textContent =
+          `발견 ${data.coverage.totalFound}곳 · 평점 매칭 ${data.coverage.ratingMatched}곳 · 미확인 ${data.coverage.unrated}곳`;
+
+        renderRouteOnMap();
+        renderAll();
+        if (currentPolyline) map.fitBounds(currentPolyline.getBounds(), { padding: [32, 32] });
+        showToast(`${keyword ? `'${keyword}' ` : ''}총 ${state.places.length}곳을 실시간으로 찾았습니다.`);
+      } catch (err) {
+        document.getElementById('statusDot').className = 'w-2 h-2 rounded-full bg-rose-500';
+        document.getElementById('coverageText').textContent = err.message;
+        showToast(err.message);
+      } finally {
+        state.loading = false;
+        btn.disabled = false;
+        label.textContent = '실시간 탐색';
+      }
+    }
+
+    // Modal Scroll Lock
+    let savedScrollY = 0;
+    let isBodyLocked = false;
+    function syncBodyScrollLock() {
+      const detailOpen = !document.getElementById('detailModal').classList.contains('hidden');
+      const quotaOpen = !document.getElementById('quotaModal').classList.contains('hidden');
+      const shouldLock = detailOpen || quotaOpen;
+      if (shouldLock && !isBodyLocked) {
+        savedScrollY = window.scrollY || 0;
+        document.documentElement.style.overflow = 'hidden';
+        document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${savedScrollY}px`;
+        document.body.style.left = '0';
+        document.body.style.right = '0';
+        document.body.style.width = '100%';
+        isBodyLocked = true;
+      } else if (!shouldLock && isBodyLocked) {
+        document.documentElement.style.overflow = '';
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.left = '';
+        document.body.style.right = '';
+        document.body.style.width = '';
+        window.scrollTo(0, savedScrollY);
+        isBodyLocked = false;
+      }
+    }
+
+    function selectPlace(id, panMap = true) {
+      state.selectedId = id;
+      const p = state.places.find(item => item.id === id);
+      if (!p) return;
+      renderAll();
+      if (panMap) map.flyTo([p.lat, p.lng], 14, { duration: 0.4 });
+      openDetailDrawer(p);
+    }
+
+    function openDetailDrawer(p) {
+      const meta = catMeta(p.category);
+      const openInfo = evaluateOpenStatus(p);
+      const isFav = state.favorites.includes(p.id);
+
+      const catBadge = document.getElementById('detailCatBadge');
+      catBadge.textContent = meta.label;
+      catBadge.className = `text-[11px] font-bold px-2 py-0.5 rounded-full ${meta.cls}`;
+      document.getElementById('detailSourceBadge').textContent = p.source;
+      document.getElementById('detailName').textContent = p.name;
+      document.getElementById('detailAddr').textContent = p.address;
+
+      const ratingHtml = p.rating !== null
+        ? `<div class="text-xl font-bold text-amber-600">Google ${p.rating.toFixed(1)}<span class="text-xs font-medium text-slate-500 ml-1">/ 5.0 · ${p.reviews.toLocaleString()}명 평가</span></div>`
+        : `<div class="text-sm font-bold text-slate-600">Google 평점 미확인 <span class="text-xs font-normal text-slate-500">(카카오 로컬 수집)</span></div>`;
+
+      document.getElementById('detailBody').innerHTML = `
+        <div class="grid grid-cols-2 gap-2.5">
+          <div class="p-3 rounded-xl bg-blue-50/70 border border-blue-100">
+            <div class="text-[11px] font-semibold text-slate-500">${p.detourVerified ? '실측 경유 추가 이동' : '추정 경유 추가 이동'}</div>
+            <div id="detailDetourVal" class="text-xl font-bold text-blue-800 mt-0.5">+${p.detourMin}분</div>
+            <div class="text-[11px] text-slate-500 mt-0.5">경로선 직선 ${p.directKm}km</div>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <div class="text-[11px] font-semibold text-slate-500">예상 도착 (${openInfo.etaStr})</div>
+            <div class="text-sm font-bold ${openInfo.isOpen ? 'text-emerald-700' : 'text-rose-700'} mt-1">${openInfo.label}</div>
+            <div class="text-[11px] text-slate-500 mt-0.5">출발 후 약 ${p.progressMin}분</div>
+          </div>
+        </div>
+
+        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
+          <div class="text-[11px] font-semibold text-slate-500">원본 평점 및 도로 실측</div>
+          ${ratingHtml}
+          <button id="recalcDetourBtn" type="button" class="mt-2 w-full py-1.5 text-xs font-semibold text-blue-700 bg-white border border-blue-200 hover:bg-blue-50 rounded-lg transition">
+            실제 도로 경유 우회시간 정밀 계산 (길찾기 1회)
+          </button>
+        </div>
+
+        ${p.icTrap ? `<div class="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800"><strong>고속도로 IC 우회 주의:</strong> ${p.icTrapReason}</div>` : ''}
+
+        <div class="space-y-2.5 text-xs">
+          <div class="flex items-start gap-2">
+            <span class="font-bold text-slate-700 w-16 shrink-0">영업시간</span>
+            <span class="text-slate-600 leading-relaxed">${p.hoursText}</span>
+          </div>
+          ${p.phone ? `<div class="flex items-start gap-2"><span class="font-bold text-slate-700 w-16 shrink-0">전화번호</span><span class="text-slate-600">${p.phone}</span></div>` : ''}
+          <div class="flex items-start gap-2">
+            <span class="font-bold text-slate-700 w-16 shrink-0">업종·태그</span>
+            <div class="flex flex-wrap gap-1">${(p.tags || []).map(t => `<span class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded">${t}</span>`).join('')}</div>
+          </div>
+        </div>
+
+        <div class="pt-1">
+          <button id="detailFavBtn" type="button"
+            class="w-full py-2 rounded-xl text-xs font-bold border transition ${isFav ? 'bg-rose-50 border-rose-300 text-rose-700' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'}">
+            ${isFav ? '♥ 경유지 찜 해제' : '♡ 경유지 후보로 찜하기'}
+          </button>
+        </div>
+      `;
+
+      const encName = encodeURIComponent(p.name);
+      const kakaoUrl = p.kakaoUrl || `https://map.kakao.com/link/to/${encName},${p.lat},${p.lng}`;
+      const tmapUrl = `tmap://route?goalname=${encName}&goalx=${p.lng}&goaly=${p.lat}`;
+      const naverUrl = `https://map.naver.com/v5/search/${encName}`;
+      const googleUrl = p.googleMapsUri || `https://www.google.com/maps/search/?api=1&query=${encName}`;
+
+      document.getElementById('detailNavActions').innerHTML = `
+        <a href="${kakaoUrl}" target="_blank" rel="noopener noreferrer" class="py-2 rounded-lg bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold text-xs text-center transition">카카오맵</a>
+        <a href="${tmapUrl}" target="_blank" rel="noopener noreferrer" class="py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs text-center transition">티맵</a>
+        <a href="${naverUrl}" target="_blank" rel="noopener noreferrer" class="py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs text-center transition">네이버</a>
+        <a href="${googleUrl}" target="_blank" rel="noopener noreferrer" class="py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs text-center transition">구글맵</a>
+      `;
+
+      document.getElementById('detailFavBtn').addEventListener('click', () => {
+        toggleFavorite(p.id);
+        openDetailDrawer(p);
+      });
+
+      document.getElementById('recalcDetourBtn').addEventListener('click', async () => {
+        if (!state.route) return;
+        const btn = document.getElementById('recalcDetourBtn');
+        btn.disabled = true;
+        btn.textContent = '실제 도로 경로 계산 중...';
+        try {
+          const resp = await fetch('/api/detour', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              origin: state.route.origin,
+              destination: state.route.destination,
+              waypoint: { lat: p.lat, lng: p.lng },
+              baseDurationSec: state.route.durationSec
+            })
+          });
+          const data = await resp.json();
+          if (!resp.ok) throw new Error(data.error || '계산 실패');
+          p.detourMin = data.detourMin;
+          p.detourVerified = true;
+          state.quota.kakaoDirections += 1;
+          safeSet('gilmat_prod_quota', state.quota);
+          renderAll();
+          openDetailDrawer(p);
+          showToast(`${p.name} 실측 우회시간: +${data.detourMin}분 (총 ${data.viaDurationMin}분)`);
+        } catch (err) {
+          btn.disabled = false;
+          btn.textContent = '실제 도로 경유 우회시간 정밀 계산 (길찾기 1회)';
+          showToast(err.message);
+        }
+      });
+
+      document.getElementById('detailModal').classList.remove('hidden');
+      document.getElementById('detailBody').scrollTop = 0;
+      syncBodyScrollLock();
+    }
+
+    function toggleFavorite(id) {
+      const idx = state.favorites.indexOf(id);
+      if (idx >= 0) state.favorites.splice(idx, 1);
+      else state.favorites.push(id);
+      safeSet('gilmat_prod_favs', state.favorites);
+      renderAll();
+    }
+
+    function renderQuotaUI() {
+      const gPct = Math.min(100, Math.round((state.quota.googleEnterprise / 900) * 100));
+      document.getElementById('quotaGoogleText').textContent = `${state.quota.googleEnterprise} / 900건`;
+      document.getElementById('quotaGoogleBar').style.width = `${gPct}%`;
+      document.getElementById('quotaKakaoText').textContent = `${state.quota.kakaoLocal.toLocaleString()}건`;
+      document.getElementById('quotaKakaoBar').style.width = `${Math.min(100, Math.max(1, Math.round((state.quota.kakaoLocal / 100000) * 100)))}%`;
+      document.getElementById('quotaDirText').textContent = `${state.quota.kakaoDirections.toLocaleString()}건`;
+    }
+
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => el.classList.add('hidden'), 3000);
+    }
+
+    // Event Listeners
+    document.getElementById('scanRouteBtn').addEventListener('click', runLiveRouteSearch);
+    document.getElementById('routeMenuInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') runLiveRouteSearch();
+    });
+    document.getElementById('fitRouteBtn').addEventListener('click', () => {
+      if (currentPolyline) map.fitBounds(currentPolyline.getBounds(), { padding: [32, 32] });
+    });
+
+    document.getElementById('daySelect').addEventListener('change', (e) => { state.dayOfWeek = parseInt(e.target.value, 10); renderAll(); });
+    document.getElementById('departTimeInput').addEventListener('change', (e) => { state.departTime = e.target.value || '12:00'; renderAll(); });
+
+    document.querySelectorAll('.cat-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.category = btn.dataset.cat;
+        document.querySelectorAll('.cat-btn').forEach(b => {
+          b.className = b === btn
+            ? 'cat-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-900 text-white shrink-0'
+            : 'cat-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 shrink-0';
+        });
+        renderAll();
+      });
+    });
+
+    document.getElementById('favOnlyBtn').addEventListener('click', (e) => {
+      state.favOnly = !state.favOnly;
+      e.currentTarget.className = state.favOnly
+        ? 'px-3 py-1.5 rounded-full text-xs font-semibold bg-rose-600 text-white border border-rose-600 shrink-0 inline-flex items-center gap-1'
+        : 'px-3 py-1.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 shrink-0 inline-flex items-center gap-1';
+      renderAll();
+    });
+
+    const filterInput = document.getElementById('filterInput');
+    const clearFilterBtn = document.getElementById('clearFilterBtn');
+    filterInput.addEventListener('input', () => {
+      state.filterText = filterInput.value;
+      clearFilterBtn.classList.toggle('hidden', !state.filterText);
+      renderAll();
+    });
+    clearFilterBtn.addEventListener('click', () => {
+      filterInput.value = '';
+      state.filterText = '';
+      clearFilterBtn.classList.add('hidden');
+      renderAll();
+    });
+
+    document.getElementById('sortSelect').addEventListener('change', (e) => { state.sortBy = e.target.value; renderAll(); });
+    document.getElementById('detourSlider').addEventListener('input', (e) => {
+      state.maxDetour = parseInt(e.target.value, 10);
+      document.getElementById('detourValLabel').textContent = `+${state.maxDetour}분 이내`;
+      renderAll();
+    });
+
+    document.querySelectorAll('.rating-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.minRating = parseFloat(btn.dataset.rating);
+        document.querySelectorAll('.rating-btn').forEach(b => {
+          b.className = b === btn
+            ? 'rating-btn px-1.5 py-0.5 rounded font-semibold bg-blue-700 text-white'
+            : 'rating-btn px-1.5 py-0.5 rounded font-semibold bg-white border border-slate-200 text-slate-600';
+        });
+        renderAll();
+      });
+    });
+
+    document.querySelectorAll('.review-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.minReviews = parseInt(btn.dataset.reviews, 10);
+        document.querySelectorAll('.review-btn').forEach(b => {
+          b.className = b === btn
+            ? 'review-btn px-1.5 py-0.5 rounded font-semibold bg-blue-700 text-white'
+            : 'review-btn px-1.5 py-0.5 rounded font-semibold bg-white border border-slate-200 text-slate-600';
+        });
+        renderAll();
+      });
+    });
+
+    document.getElementById('openAtEtaChk').addEventListener('change', (e) => { state.openAtEta = e.target.checked; renderAll(); });
+    document.getElementById('includeUnratedChk').addEventListener('change', (e) => { state.includeUnrated = e.target.checked; renderAll(); });
+    document.getElementById('excludeIcTrapChk').addEventListener('change', (e) => { state.excludeIcTrap = e.target.checked; renderAll(); });
+    document.getElementById('enrichRatingsChk').addEventListener('change', (e) => { state.enrichRatings = e.target.checked; });
+    document.getElementById('showIcLayerChk').addEventListener('change', (e) => { state.showIcLayer = e.target.checked; renderRouteOnMap(); });
+
+    document.getElementById('resetFiltersBtn').addEventListener('click', () => {
+      state.category = 'all'; state.filterText = ''; state.maxDetour = 15;
+      state.minRating = 0; state.minReviews = 0; state.openAtEta = false;
+      state.includeUnrated = true; state.excludeIcTrap = true; state.favOnly = false;
+      filterInput.value = ''; clearFilterBtn.classList.add('hidden');
+      document.getElementById('detourSlider').value = 15;
+      document.getElementById('detourValLabel').textContent = '+15분 이내';
+      document.getElementById('openAtEtaChk').checked = false;
+      document.getElementById('includeUnratedChk').checked = true;
+      document.getElementById('excludeIcTrapChk').checked = true;
+      renderAll();
+    });
+
+    document.getElementById('placesList').addEventListener('click', (e) => {
+      const favBtn = e.target.closest('.fav-toggle-btn');
+      if (favBtn) { e.stopPropagation(); toggleFavorite(favBtn.dataset.favId); return; }
+      const card = e.target.closest('.place-card');
+      if (card) selectPlace(card.dataset.id, true);
+    });
+
+    function closeDetailModal() { document.getElementById('detailModal').classList.add('hidden'); syncBodyScrollLock(); }
+    document.getElementById('closeDetailBtn').addEventListener('click', closeDetailModal);
+    document.getElementById('detailModal').addEventListener('click', (e) => { if (e.target.id === 'detailModal') closeDetailModal(); });
+
+    function openQuotaModal() { renderQuotaUI(); document.getElementById('quotaModal').classList.remove('hidden'); syncBodyScrollLock(); }
+    function closeQuotaModal() { document.getElementById('quotaModal').classList.add('hidden'); syncBodyScrollLock(); }
+    document.getElementById('openQuotaBtn').addEventListener('click', openQuotaModal);
+    document.getElementById('closeQuotaBtn').addEventListener('click', closeQuotaModal);
+    document.getElementById('doneQuotaBtn').addEventListener('click', closeQuotaModal);
+    document.getElementById('quotaModal').addEventListener('click', (e) => { if (e.target.id === 'quotaModal') closeQuotaModal(); });
+    document.getElementById('resetQuotaBtn').addEventListener('click', () => {
+      state.quota = { month: currentMonthKey, googleEnterprise: 0, kakaoLocal: 0, kakaoDirections: 0 };
+      safeSet('gilmat_prod_quota', state.quota);
+      renderQuotaUI();
+      showToast('월간 쿼터 카운터를 초기화했습니다.');
+    });
+
+    document.getElementById('exportJsonBtn').addEventListener('click', () => {
+      const list = getFilteredPlaces();
+      if (list.length === 0) { showToast('저장할 검색 결과가 없습니다.'); return; }
+      const blob = new Blob([JSON.stringify({ route: state.route, count: list.length, places: list }, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'gilmat-live-results.json';
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      showToast(`${list.length}곳을 JSON으로 저장했습니다.`);
+    });
+
+    window.addEventListener('load', () => {
+      if (window.lucide) lucide.createIcons();
+      renderQuotaUI();
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      }
+    });
+  </script>
+</body>
+</html>
