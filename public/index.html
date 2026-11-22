@@ -1,12 +1,13 @@
+```html
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" class="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#1D4ED8">
+  <meta name="theme-color" content="#0B1120">
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
-  <title>길맛 — 경로상 맛집·카페·놀거리 실시간 탐색</title>
+  <title>길맛 — 경로상 맛집·카페 실시간 탐색</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -17,37 +18,51 @@
   <style>
     body {
       font-family: 'Inter', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
-      background-color: #F8FAFC;
-      color: #0F172A;
+      background-color: #0B1120;
+      color: #F1F5F9;
+      color-scheme: dark;
     }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* Dark Leaflet controls */
+    .leaflet-container { background: #0F172A; }
+    .leaflet-control-zoom a {
+      background-color: #1E293B !important;
+      color: #F1F5F9 !important;
+      border-color: #334155 !important;
+    }
+    .leaflet-control-zoom a:hover { background-color: #334155 !important; }
+    .leaflet-control-attribution {
+      background: rgba(15, 23, 42, 0.85) !important;
+      color: #94A3B8 !important;
+    }
+    .leaflet-control-attribution a { color: #60A5FA !important; }
 
     .gm-pin {
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 2px;
-      padding: 3px 7px;
+      padding: 3px 8px;
       border-radius: 9999px;
       font-size: 11px;
       font-weight: 700;
       color: #FFFFFF;
-      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.28);
-      border: 2px solid #FFFFFF;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.55);
+      border: 1.5px solid rgba(255, 255, 255, 0.85);
       white-space: nowrap;
       transition: transform 0.15s ease;
     }
     .gm-pin:hover, .gm-pin.selected {
-      transform: scale(1.16);
+      transform: scale(1.18);
       z-index: 1000 !important;
-      border-color: #0F172A;
+      border-color: #FACC15;
     }
     .gm-pin-food { background: #D97706; }
     .gm-pin-cafe { background: #2563EB; }
-    .gm-pin-play { background: #0F766E; }
-    .gm-pin-unrated { background: #64748B; }
-    .gm-pin-trap { background: #DC2626; opacity: 0.72; }
+    .gm-pin-unrated { background: #475569; }
+    .gm-pin-trap { background: #DC2626; opacity: 0.78; }
 
     .gm-endpoint {
       display: flex;
@@ -59,56 +74,56 @@
       font-size: 12px;
       font-weight: 800;
       color: #FFFFFF;
-      border: 2.5px solid #FFFFFF;
-      box-shadow: 0 3px 8px rgba(15, 23, 42, 0.35);
+      border: 2px solid #FFFFFF;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.6);
     }
 
     #map {
       width: 100%;
       height: 100%;
-      min-height: 320px;
+      min-height: 330px;
       z-index: 1;
     }
   </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="min-h-screen flex flex-col bg-[#0B1120] text-slate-100">
 
-  <!-- Top Navigation & Live Search Bar (non-sticky on narrow mobile, sticky on lg+) -->
-  <header class="bg-white border-b border-slate-200 relative lg:sticky lg:top-0 z-[1000]">
+  <!-- Top Navigation & Live Search Bar (Dark Mode) -->
+  <header class="bg-slate-900/95 backdrop-blur border-b border-slate-800 relative lg:sticky lg:top-0 z-[1000]">
     <div class="px-3 sm:px-5 py-2.5 flex flex-wrap items-center justify-between gap-2.5">
       <div class="flex items-center gap-2.5">
-        <div class="w-8 h-8 rounded-lg bg-blue-700 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+        <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
           길
         </div>
         <div>
           <div class="flex items-center gap-1.5">
-            <h1 class="text-base font-bold text-slate-900 tracking-tight">길맛</h1>
-            <span class="text-[11px] font-semibold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">v2.0 실서비스</span>
+            <h1 class="text-base font-bold text-white tracking-tight">길맛</h1>
+            <span class="text-[11px] font-semibold px-1.5 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800">v2.1 다크</span>
           </div>
-          <p class="text-[11px] text-slate-500 hidden sm:block">경로상 모든 맛집·카페·놀거리 실시간 탐색</p>
+          <p class="text-[11px] text-slate-400 hidden sm:block">경로상 모든 맛집·카페 실시간 탐색</p>
         </div>
       </div>
 
       <!-- Live Route & Menu Search Form -->
       <div class="flex flex-wrap items-center gap-1.5 flex-1 max-w-3xl">
-        <div class="flex items-center bg-slate-100 rounded-lg px-2.5 py-1.5 flex-1 min-w-[130px] border border-slate-200 focus-within:border-blue-500 focus-within:bg-white">
-          <span class="w-4 h-4 rounded-full bg-blue-700 text-white text-[10px] font-bold flex items-center justify-center mr-1.5 shrink-0">A</span>
+        <div class="flex items-center bg-slate-800 rounded-lg px-2.5 py-1.5 flex-1 min-w-[130px] border border-slate-700 focus-within:border-blue-500">
+          <span class="w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center mr-1.5 shrink-0">A</span>
           <input id="originInput" type="text" value="서울 성북구 오패산로 46" placeholder="출발지" aria-label="출발지"
-            class="bg-transparent text-xs sm:text-sm font-medium text-slate-800 w-full outline-none">
+            class="bg-transparent text-xs sm:text-sm font-medium text-slate-100 placeholder-slate-400 w-full outline-none">
         </div>
-        <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
-        <div class="flex items-center bg-slate-100 rounded-lg px-2.5 py-1.5 flex-1 min-w-[130px] border border-slate-200 focus-within:border-blue-500 focus-within:bg-white">
-          <span class="w-4 h-4 rounded-full bg-teal-700 text-white text-[10px] font-bold flex items-center justify-center mr-1.5 shrink-0">B</span>
+        <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-500 shrink-0"></i>
+        <div class="flex items-center bg-slate-800 rounded-lg px-2.5 py-1.5 flex-1 min-w-[130px] border border-slate-700 focus-within:border-blue-500">
+          <span class="w-4 h-4 rounded-full bg-emerald-600 text-white text-[10px] font-bold flex items-center justify-center mr-1.5 shrink-0">B</span>
           <input id="destInput" type="text" value="인천국제공항 제1여객터미널" placeholder="목적지" aria-label="목적지"
-            class="bg-transparent text-xs sm:text-sm font-medium text-slate-800 w-full outline-none">
+            class="bg-transparent text-xs sm:text-sm font-medium text-slate-100 placeholder-slate-400 w-full outline-none">
         </div>
-        <div class="flex items-center bg-slate-100 rounded-lg px-2.5 py-1.5 w-full sm:w-44 border border-slate-200 focus-within:border-blue-500 focus-within:bg-white">
+        <div class="flex items-center bg-slate-800 rounded-lg px-2.5 py-1.5 w-full sm:w-44 border border-slate-700 focus-within:border-blue-500">
           <i data-lucide="utensils" class="w-3.5 h-3.5 text-slate-400 mr-1.5 shrink-0"></i>
           <input id="routeMenuInput" type="text" placeholder="메뉴(선택: 고등어, 막국수)" aria-label="경로 검색 메뉴"
-            class="bg-transparent text-xs sm:text-sm font-medium text-slate-800 w-full outline-none">
+            class="bg-transparent text-xs sm:text-sm font-medium text-slate-100 placeholder-slate-400 w-full outline-none">
         </div>
-        <div class="flex items-center gap-1 bg-slate-100 rounded-lg px-2 py-1.5 border border-slate-200">
-          <select id="daySelect" aria-label="출발 요일" class="bg-transparent text-xs font-semibold text-slate-700 outline-none cursor-pointer">
+        <div class="flex items-center gap-1 bg-slate-800 rounded-lg px-2 py-1.5 border border-slate-700">
+          <select id="daySelect" aria-label="출발 요일" class="bg-slate-800 text-xs font-semibold text-slate-200 outline-none cursor-pointer">
             <option value="0">일</option>
             <option value="1">월</option>
             <option value="2">화</option>
@@ -118,37 +133,37 @@
             <option value="6">토</option>
           </select>
           <input id="departTimeInput" type="time" aria-label="출발 시각"
-            class="bg-transparent text-xs font-semibold text-slate-800 outline-none cursor-pointer">
+            class="bg-transparent text-xs font-semibold text-slate-100 outline-none cursor-pointer">
         </div>
         <button id="scanRouteBtn" type="button"
-          class="bg-blue-700 hover:bg-blue-800 active:scale-[0.98] disabled:opacity-60 text-white text-xs sm:text-sm font-semibold px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 transition shadow-sm shrink-0">
+          class="bg-blue-600 hover:bg-blue-500 active:scale-[0.98] disabled:opacity-60 text-white text-xs sm:text-sm font-semibold px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 transition shadow-sm shrink-0">
           <i data-lucide="radar" class="w-3.5 h-3.5"></i>
           <span id="scanBtnLabel">실시간 탐색</span>
         </button>
       </div>
 
       <button id="openQuotaBtn" type="button"
-        class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-semibold px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition">
+        class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition">
         <i data-lucide="gauge" class="w-3.5 h-3.5"></i>
         <span>쿼터</span>
       </button>
     </div>
 
     <!-- Coverage Status Bar -->
-    <div class="bg-slate-50 border-t border-slate-200 px-3 sm:px-5 py-1.5 flex flex-wrap items-center justify-between gap-2 text-[11px] sm:text-xs text-slate-600">
+    <div class="bg-slate-950/90 border-t border-slate-800 px-3 sm:px-5 py-1.5 flex flex-wrap items-center justify-between gap-2 text-[11px] sm:text-xs text-slate-400">
       <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <span class="inline-flex items-center gap-1 font-semibold text-slate-800">
-          <span id="statusDot" class="w-2 h-2 rounded-full bg-slate-400"></span>
+        <span class="inline-flex items-center gap-1.5 font-semibold text-slate-200">
+          <span id="statusDot" class="w-2 h-2 rounded-full bg-slate-500"></span>
           <span id="coverageText">출발지·목적지를 입력하고 [실시간 탐색]을 눌러 주세요.</span>
         </span>
-        <span id="pipelineStats" class="text-slate-500"></span>
+        <span id="pipelineStats" class="text-slate-400"></span>
       </div>
       <div class="flex items-center gap-3">
-        <label class="inline-flex items-center gap-1.5 cursor-pointer select-none font-medium text-slate-700">
-          <input id="showIcLayerChk" type="checkbox" checked class="rounded border-slate-300 text-blue-700 focus:ring-blue-500">
+        <label class="inline-flex items-center gap-1.5 cursor-pointer select-none font-medium text-slate-300">
+          <input id="showIcLayerChk" type="checkbox" checked class="rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500">
           <span>IC 샘플링 반경</span>
         </label>
-        <button id="exportJsonBtn" type="button" class="text-blue-700 hover:text-blue-900 font-semibold inline-flex items-center gap-1">
+        <button id="exportJsonBtn" type="button" class="text-blue-400 hover:text-blue-300 font-semibold inline-flex items-center gap-1">
           <i data-lucide="download" class="w-3 h-3"></i>
           <span>JSON 저장</span>
         </button>
@@ -157,37 +172,43 @@
   </header>
 
   <!-- Main Workspace -->
-  <div class="flex-1 w-full bg-white">
+  <div class="flex-1 w-full bg-[#0B1120]">
     <main class="flex flex-col lg:flex-row lg:h-[calc(100vh-108px)]">
 
-      <!-- Left: Isolated Map Pane -->
-      <section class="map-pane relative z-0 isolate overflow-hidden w-full lg:w-[57%] h-[340px] lg:h-full border-b lg:border-b-0 lg:border-r border-slate-200 shrink-0">
+      <!-- Left: Isolated High-Res Dark Map Pane -->
+      <section class="map-pane relative z-0 isolate overflow-hidden w-full lg:w-[57%] h-[340px] lg:h-full border-b lg:border-b-0 lg:border-r border-slate-800 shrink-0">
         <div id="map"></div>
 
-        <div class="absolute bottom-3 left-3 z-[400] bg-white/95 backdrop-blur-sm border border-slate-200 rounded-lg px-2.5 py-1.5 shadow-sm flex flex-wrap items-center gap-2.5 text-[11px] font-medium text-slate-700">
-          <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-600"></span>음식점</span>
-          <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>카페</span>
-          <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-teal-700"></span>놀거리</span>
+        <!-- Map Legend -->
+        <div class="absolute bottom-3 left-3 z-[400] bg-slate-900/90 backdrop-blur-sm border border-slate-700 rounded-lg px-2.5 py-1.5 shadow-lg flex flex-wrap items-center gap-2.5 text-[11px] font-medium text-slate-200">
+          <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>음식점</span>
+          <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>카페</span>
           <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-slate-500"></span>평점 미확인</span>
         </div>
 
-        <button id="fitRouteBtn" type="button" title="전체 경로 보기"
-          class="absolute top-3 right-3 z-[400] bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold shadow-sm flex items-center gap-1">
-          <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
-          <span>전체 경로</span>
-        </button>
+        <!-- Map Style & Fit Route Controls -->
+        <div class="absolute top-3 right-3 z-[400] flex items-center gap-1.5">
+          <button id="toggleMapStyleBtn" type="button" title="지도 스타일 전환"
+            class="bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-semibold shadow-lg">
+            위성 보기
+          </button>
+          <button id="fitRouteBtn" type="button" title="전체 경로 보기"
+            class="bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-semibold shadow-lg flex items-center gap-1">
+            <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
+            <span>전체 경로</span>
+          </button>
+        </div>
       </section>
 
       <!-- Right: Filter & Results Pane -->
-      <section class="w-full lg:w-[43%] flex flex-col lg:h-full bg-white">
-        <div class="p-3 sm:p-4 border-b border-slate-200 bg-white space-y-2.5 shrink-0">
-          <!-- Category Pills + Favorites -->
+      <section class="w-full lg:w-[43%] flex flex-col lg:h-full bg-slate-900">
+        <div class="p-3 sm:p-4 border-b border-slate-800 bg-slate-900 space-y-2.5 shrink-0">
+          <!-- Category Pills (음식점 · 카페 전용) + Favorites -->
           <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
-            <button type="button" data-cat="all" class="cat-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-900 text-white shrink-0">전체</button>
-            <button type="button" data-cat="food" class="cat-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 shrink-0">음식점</button>
-            <button type="button" data-cat="cafe" class="cat-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 shrink-0">카페</button>
-            <button type="button" data-cat="play" class="cat-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 shrink-0">놀거리</button>
-            <button type="button" id="favOnlyBtn" class="px-3 py-1.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 shrink-0 inline-flex items-center gap-1">
+            <button type="button" data-cat="all" class="cat-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-600 text-white shrink-0">전체</button>
+            <button type="button" data-cat="food" class="cat-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 shrink-0">음식점</button>
+            <button type="button" data-cat="cafe" class="cat-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 shrink-0">카페</button>
+            <button type="button" id="favOnlyBtn" class="px-3 py-1.5 rounded-full text-xs font-semibold bg-rose-950/60 text-rose-300 border border-rose-800 hover:bg-rose-900/60 shrink-0 inline-flex items-center gap-1">
               <i data-lucide="heart" class="w-3 h-3"></i>
               <span>찜 (<span id="favCount">0</span>)</span>
             </button>
@@ -198,13 +219,13 @@
             <div class="relative flex-1">
               <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2"></i>
               <input id="filterInput" type="text" placeholder="결과 내 재검색 (상호·지역·업종)"
-                class="w-full pl-8 pr-7 py-1.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-blue-500 outline-none">
-              <button id="clearFilterBtn" type="button" class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                class="w-full pl-8 pr-7 py-1.5 text-xs sm:text-sm bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-400 rounded-lg focus:border-blue-500 outline-none">
+              <button id="clearFilterBtn" type="button" class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200">
                 <i data-lucide="x" class="w-3.5 h-3.5"></i>
               </button>
             </div>
             <select id="sortSelect" aria-label="정렬 기준"
-              class="text-xs font-semibold bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 outline-none cursor-pointer">
+              class="text-xs font-semibold bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 outline-none cursor-pointer">
               <option value="detour">우회시간순</option>
               <option value="rating">Google 평점순</option>
               <option value="reviews">평가수순</option>
@@ -214,145 +235,145 @@
 
           <!-- Detour Slider + Rating/Review Filters -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-0.5">
-            <div class="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2">
+            <div class="bg-slate-800/80 border border-slate-700 rounded-lg px-2.5 py-2">
               <div class="flex items-center justify-between text-xs mb-1">
-                <span class="font-semibold text-slate-700">최대 추가 이동</span>
-                <span id="detourValLabel" class="font-bold text-blue-700">+15분 이내</span>
+                <span class="font-semibold text-slate-300">최대 추가 이동</span>
+                <span id="detourValLabel" class="font-bold text-blue-400">+15분 이내</span>
               </div>
               <input id="detourSlider" type="range" min="5" max="30" step="1" value="15"
-                class="w-full accent-blue-700 h-1.5 bg-slate-200 rounded-lg cursor-pointer">
+                class="w-full accent-blue-500 h-1.5 bg-slate-700 rounded-lg cursor-pointer">
             </div>
 
-            <div class="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2 flex flex-col justify-between">
+            <div class="bg-slate-800/80 border border-slate-700 rounded-lg px-2.5 py-2 flex flex-col justify-between">
               <div class="flex items-center justify-between gap-1 text-[11px]">
-                <span class="font-semibold text-slate-700">Google 평점</span>
+                <span class="font-semibold text-slate-300">Google 평점</span>
                 <div class="flex items-center gap-1">
-                  <button type="button" data-rating="0" class="rating-btn px-1.5 py-0.5 rounded font-semibold bg-blue-700 text-white">전체</button>
-                  <button type="button" data-rating="4.3" class="rating-btn px-1.5 py-0.5 rounded font-semibold bg-white border border-slate-200 text-slate-600">4.3+</button>
-                  <button type="button" data-rating="4.5" class="rating-btn px-1.5 py-0.5 rounded font-semibold bg-white border border-slate-200 text-slate-600">4.5+</button>
-                  <button type="button" data-rating="4.8" class="rating-btn px-1.5 py-0.5 rounded font-semibold bg-white border border-slate-200 text-slate-600">4.8+</button>
+                  <button type="button" data-rating="0" class="rating-btn px-1.5 py-0.5 rounded font-semibold bg-blue-600 text-white">전체</button>
+                  <button type="button" data-rating="4.3" class="rating-btn px-1.5 py-0.5 rounded font-semibold bg-slate-900 border border-slate-700 text-slate-300">4.3+</button>
+                  <button type="button" data-rating="4.5" class="rating-btn px-1.5 py-0.5 rounded font-semibold bg-slate-900 border border-slate-700 text-slate-300">4.5+</button>
+                  <button type="button" data-rating="4.8" class="rating-btn px-1.5 py-0.5 rounded font-semibold bg-slate-900 border border-slate-700 text-slate-300">4.8+</button>
                 </div>
               </div>
               <div class="flex items-center justify-between gap-1 text-[11px] mt-1.5">
-                <span class="font-semibold text-slate-700">최소 평가수</span>
+                <span class="font-semibold text-slate-300">최소 평가수</span>
                 <div class="flex items-center gap-1">
-                  <button type="button" data-reviews="0" class="review-btn px-1.5 py-0.5 rounded font-semibold bg-blue-700 text-white">전체</button>
-                  <button type="button" data-reviews="50" class="review-btn px-1.5 py-0.5 rounded font-semibold bg-white border border-slate-200 text-slate-600">50+</button>
-                  <button type="button" data-reviews="100" class="review-btn px-1.5 py-0.5 rounded font-semibold bg-white border border-slate-200 text-slate-600">100+</button>
-                  <button type="button" data-reviews="200" class="review-btn px-1.5 py-0.5 rounded font-semibold bg-white border border-slate-200 text-slate-600">200+</button>
+                  <button type="button" data-reviews="0" class="review-btn px-1.5 py-0.5 rounded font-semibold bg-blue-600 text-white">전체</button>
+                  <button type="button" data-reviews="50" class="review-btn px-1.5 py-0.5 rounded font-semibold bg-slate-900 border border-slate-700 text-slate-300">50+</button>
+                  <button type="button" data-reviews="100" class="review-btn px-1.5 py-0.5 rounded font-semibold bg-slate-900 border border-slate-700 text-slate-300">100+</button>
+                  <button type="button" data-reviews="200" class="review-btn px-1.5 py-0.5 rounded font-semibold bg-slate-900 border border-slate-700 text-slate-300">200+</button>
                 </div>
               </div>
             </div>
           </div>
 
           <!-- Driving Toggles -->
-          <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-slate-700 pt-0.5">
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-slate-300 pt-0.5">
             <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
-              <input id="openAtEtaChk" type="checkbox" class="rounded border-slate-300 text-blue-700 focus:ring-blue-500">
+              <input id="openAtEtaChk" type="checkbox" class="rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500">
               <span class="font-medium">도착 시각 영업 중</span>
             </label>
             <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
-              <input id="includeUnratedChk" type="checkbox" checked class="rounded border-slate-300 text-blue-700 focus:ring-blue-500">
+              <input id="includeUnratedChk" type="checkbox" checked class="rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500">
               <span class="font-medium">평점 미확인 포함</span>
             </label>
             <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
-              <input id="excludeIcTrapChk" type="checkbox" checked class="rounded border-slate-300 text-blue-700 focus:ring-blue-500">
+              <input id="excludeIcTrapChk" type="checkbox" checked class="rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500">
               <span class="font-medium">IC 오탐 제외</span>
             </label>
             <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
-              <input id="enrichRatingsChk" type="checkbox" checked class="rounded border-slate-300 text-blue-700 focus:ring-blue-500">
+              <input id="enrichRatingsChk" type="checkbox" checked class="rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500">
               <span class="font-medium">Google 평점 결합</span>
             </label>
           </div>
 
-          <div class="flex items-center justify-between pt-1 border-t border-slate-100 text-xs">
-            <span id="resultCountLabel" class="font-bold text-slate-900">탐색 대기 중</span>
-            <button id="resetFiltersBtn" type="button" class="text-slate-500 hover:text-blue-700 font-medium">필터 초기화</button>
+          <div class="flex items-center justify-between pt-1 border-t border-slate-800 text-xs">
+            <span id="resultCountLabel" class="font-bold text-white">탐색 대기 중</span>
+            <button id="resetFiltersBtn" type="button" class="text-slate-400 hover:text-blue-400 font-medium">필터 초기화</button>
           </div>
         </div>
 
-        <div id="placesList" class="flex-1 overflow-y-auto divide-y divide-slate-100 p-2 sm:p-3 space-y-2 bg-slate-50/70">
+        <div id="placesList" class="flex-1 overflow-y-auto p-2 sm:p-3 space-y-2 bg-[#0B1120]">
           <div class="text-center py-12 px-4 space-y-2">
-            <p class="text-sm font-bold text-slate-800">실시간 경로 탐색 준비 완료</p>
-            <p class="text-xs text-slate-500 leading-relaxed">상단에서 출발지·목적지와 원하는 메뉴(선택)를 입력하고 <strong>[실시간 탐색]</strong>을 누르면<br>카카오 로컬·길찾기·Google Places에서 경로 전체 후보를 즉시 불러옵니다.</p>
+            <p class="text-sm font-bold text-slate-200">음식점·카페 실시간 탐색 준비 완료</p>
+            <p class="text-xs text-slate-400 leading-relaxed">상단에서 출발지·목적지와 원하는 메뉴(선택)를 입력하고 <strong class="text-blue-400">[실시간 탐색]</strong>을 눌러 주세요.</p>
           </div>
         </div>
       </section>
     </main>
   </div>
 
-  <!-- Place Detail Drawer (with background scroll lock) -->
-  <div id="detailModal" class="hidden fixed inset-0 z-[1100] bg-slate-900/40 backdrop-blur-[1px] flex items-end sm:items-center justify-center sm:justify-end overscroll-none touch-none">
-    <div class="bg-white w-full sm:w-[430px] max-h-[88vh] sm:h-full sm:max-h-full rounded-t-2xl sm:rounded-none shadow-2xl flex flex-col overflow-hidden">
-      <div class="p-4 border-b border-slate-200 flex items-start justify-between gap-3">
+  <!-- Place Detail Drawer (Dark Mode + Scroll Lock) -->
+  <div id="detailModal" class="hidden fixed inset-0 z-[1100] bg-black/65 backdrop-blur-[2px] flex items-end sm:items-center justify-center sm:justify-end overscroll-none touch-none">
+    <div class="bg-slate-900 border-t sm:border-t-0 sm:border-l border-slate-700 w-full sm:w-[430px] max-h-[88vh] sm:h-full sm:max-h-full rounded-t-2xl sm:rounded-none shadow-2xl flex flex-col overflow-hidden">
+      <div class="p-4 border-b border-slate-800 flex items-start justify-between gap-3">
         <div>
           <div class="flex items-center gap-1.5 mb-1">
             <span id="detailCatBadge" class="text-[11px] font-bold px-2 py-0.5 rounded-full"></span>
-            <span id="detailSourceBadge" class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600"></span>
+            <span id="detailSourceBadge" class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700"></span>
           </div>
-          <h2 id="detailName" class="text-lg font-bold text-slate-900 leading-snug"></h2>
-          <p id="detailAddr" class="text-xs text-slate-500 mt-0.5"></p>
+          <h2 id="detailName" class="text-lg font-bold text-white leading-snug"></h2>
+          <p id="detailAddr" class="text-xs text-slate-400 mt-0.5"></p>
         </div>
-        <button id="closeDetailBtn" type="button" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100">
+        <button id="closeDetailBtn" type="button" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
       <div id="detailBody" class="p-4 overflow-y-auto flex-1 space-y-4 text-sm overscroll-contain touch-pan-y"></div>
-      <div class="p-3.5 border-t border-slate-200 bg-slate-50 space-y-2">
-        <div class="text-[11px] font-semibold text-slate-500">내비게이션 원탭 경유지·목적지 전송</div>
+      <div class="p-3.5 border-t border-slate-800 bg-slate-950 space-y-2">
+        <div class="text-[11px] font-semibold text-slate-400">내비게이션 원탭 경유지·목적지 전송</div>
         <div id="detailNavActions" class="grid grid-cols-4 gap-1.5"></div>
       </div>
     </div>
   </div>
 
-  <!-- Monthly Quota Monitor Modal -->
-  <div id="quotaModal" class="hidden fixed inset-0 z-[1100] bg-slate-900/45 backdrop-blur-[1px] flex items-center justify-center p-3 overscroll-none touch-none">
-    <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
-      <div class="p-4 border-b border-slate-200 flex items-center justify-between">
+  <!-- Monthly Quota Monitor Modal (Dark Mode) -->
+  <div id="quotaModal" class="hidden fixed inset-0 z-[1100] bg-black/65 backdrop-blur-[2px] flex items-center justify-center p-3 overscroll-none touch-none">
+    <div class="bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
+      <div class="p-4 border-b border-slate-800 flex items-center justify-between">
         <div>
-          <h2 class="text-base font-bold text-slate-900">월 0원 무료 쿼터 모니터</h2>
-          <p class="text-xs text-slate-500">API 키는 서버 환경변수에 안전하게 보관됩니다.</p>
+          <h2 class="text-base font-bold text-white">월 0원 무료 쿼터 모니터</h2>
+          <p class="text-xs text-slate-400">API 키는 Cloudflare 서버 환경변수에 안전 보관됩니다.</p>
         </div>
-        <button id="closeQuotaBtn" type="button" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100">
+        <button id="closeQuotaBtn" type="button" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
       <div class="p-4 space-y-3 text-xs overscroll-contain touch-pan-y">
-        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2.5">
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2.5">
           <div>
             <div class="flex justify-between mb-1">
-              <span class="font-medium text-slate-700">Google Places Enterprise (월 1,000건 무료)</span>
-              <span id="quotaGoogleText" class="font-mono font-bold text-blue-700">0 / 900건</span>
+              <span class="font-medium text-slate-300">Google Places Enterprise (월 1,000건 무료)</span>
+              <span id="quotaGoogleText" class="font-mono font-bold text-blue-400">0 / 900건</span>
             </div>
-            <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-              <div id="quotaGoogleBar" class="h-full bg-blue-700 transition-all" style="width: 0%"></div>
+            <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+              <div id="quotaGoogleBar" class="h-full bg-blue-500 transition-all" style="width: 0%"></div>
             </div>
           </div>
           <div>
             <div class="flex justify-between mb-1">
-              <span class="font-medium text-slate-700">카카오 로컬 REST (일 100,000건 무료)</span>
-              <span id="quotaKakaoText" class="font-mono font-bold text-teal-700">0건</span>
+              <span class="font-medium text-slate-300">카카오 로컬 REST (일 100,000건 무료)</span>
+              <span id="quotaKakaoText" class="font-mono font-bold text-emerald-400">0건</span>
             </div>
-            <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-              <div id="quotaKakaoBar" class="h-full bg-teal-600 transition-all" style="width: 1%"></div>
+            <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+              <div id="quotaKakaoBar" class="h-full bg-emerald-500 transition-all" style="width: 1%"></div>
             </div>
           </div>
           <div>
             <div class="flex justify-between">
-              <span class="font-medium text-slate-700">카카오모빌리티 길찾기 호출</span>
-              <span id="quotaDirText" class="font-mono font-bold text-slate-800">0건</span>
+              <span class="font-medium text-slate-300">카카오모빌리티 길찾기 호출</span>
+              <span id="quotaDirText" class="font-mono font-bold text-slate-200">0건</span>
             </div>
           </div>
         </div>
         <div class="flex items-center justify-between pt-1">
-          <button id="resetQuotaBtn" type="button" class="text-slate-500 hover:text-blue-700 font-semibold">이번 달 카운터 초기화</button>
-          <button id="doneQuotaBtn" type="button" class="px-4 py-1.5 bg-blue-700 text-white font-semibold rounded-lg">확인</button>
+          <button id="resetQuotaBtn" type="button" class="text-slate-400 hover:text-blue-400 font-semibold">이번 달 카운터 초기화</button>
+          <button id="doneQuotaBtn" type="button" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg">확인</button>
         </div>
       </div>
     </div>
   </div>
 
-  <div id="toast" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-[1200] bg-slate-900 text-white text-xs font-semibold px-4 py-2.5 rounded-full shadow-lg"></div>
+  <div id="toast" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-[1200] bg-slate-100 text-slate-950 text-xs font-bold px-4 py-2.5 rounded-full shadow-xl"></div>
 
   <script>
     function safeGet(key, fallback) {
@@ -392,20 +413,27 @@
       showIcLayer: true,
       selectedId: null,
       loading: false,
+      mapStyle: 'dark',
       favorites: safeGet('gilmat_prod_favs', []),
       quota: storedQuota
     };
 
-    // Init time inputs to current local time
     document.getElementById('daySelect').value = String(state.dayOfWeek);
     document.getElementById('departTimeInput').value = state.departTime;
 
-    // Leaflet Map
+    // High-Resolution Retina Dark Map (CartoDB Dark Matter) + Satellite Toggle
     const map = L.map('map', { zoomControl: true }).setView([37.54, 126.85], 11);
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+
+    const darkTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      subdomains: 'abcd',
+      attribution: '&copy; OpenStreetMap &copy; CARTO',
+      maxZoom: 20
+    });
+    const satelliteTileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
       attribution: 'Tiles &copy; Esri',
-      maxZoom: 18
-    }).addTo(map);
+      maxZoom: 19
+    });
+    darkTileLayer.addTo(map);
 
     const routeGroup = L.layerGroup().addTo(map);
     const icGroup = L.layerGroup().addTo(map);
@@ -430,7 +458,6 @@
       if (!Array.isArray(place.googlePeriods) || place.googlePeriods.length === 0) {
         return { status: 'unknown', label: `${etaStr} 도착 (영업 미확인)`, etaStr, isOpen: true };
       }
-      // 24h check
       if (place.googlePeriods.length === 1 && !place.googlePeriods[0].close) {
         return { status: 'open', label: `${etaStr} 도착 영업 중`, etaStr, isOpen: true };
       }
@@ -478,9 +505,8 @@
     }
 
     function catMeta(cat) {
-      if (cat === 'food') return { label: '음식점', cls: 'bg-amber-100 text-amber-800', pinCls: 'gm-pin-food' };
-      if (cat === 'cafe') return { label: '카페', cls: 'bg-blue-100 text-blue-800', pinCls: 'gm-pin-cafe' };
-      return { label: '놀거리', cls: 'bg-teal-100 text-teal-800', pinCls: 'gm-pin-play' };
+      if (cat === 'cafe') return { label: '카페', cls: 'bg-blue-950 text-blue-300 border border-blue-800', pinCls: 'gm-pin-cafe' };
+      return { label: '음식점', cls: 'bg-amber-950 text-amber-300 border border-amber-800', pinCls: 'gm-pin-food' };
     }
 
     function renderRouteOnMap() {
@@ -489,26 +515,26 @@
       if (!state.route) return;
 
       currentPolyline = L.polyline(state.route.polyline, {
-        color: '#1D4ED8', weight: 5, opacity: 0.85, lineJoin: 'round'
+        color: '#38BDF8', weight: 5, opacity: 0.9, lineJoin: 'round'
       }).addTo(routeGroup);
 
       L.marker([state.route.origin.lat, state.route.origin.lng], {
-        icon: L.divIcon({ className: '', html: '<div class="gm-endpoint" style="background:#1D4ED8">A</div>', iconSize: [28, 28], iconAnchor: [14, 14] })
+        icon: L.divIcon({ className: '', html: '<div class="gm-endpoint" style="background:#2563EB">A</div>', iconSize: [28, 28], iconAnchor: [14, 14] })
       }).addTo(routeGroup).bindTooltip(`출발: ${state.route.origin.name}`);
 
       L.marker([state.route.destination.lat, state.route.destination.lng], {
-        icon: L.divIcon({ className: '', html: '<div class="gm-endpoint" style="background:#0F766E">B</div>', iconSize: [28, 28], iconAnchor: [14, 14] })
+        icon: L.divIcon({ className: '', html: '<div class="gm-endpoint" style="background:#059669">B</div>', iconSize: [28, 28], iconAnchor: [14, 14] })
       }).addTo(routeGroup).bindTooltip(`도착: ${state.route.destination.name}`);
 
       if (state.showIcLayer) {
         state.samplingNodes.forEach(node => {
           L.circle([node.lat, node.lng], {
             radius: node.radius,
-            color: node.type === 'ic' ? '#0F766E' : '#1D4ED8',
+            color: node.type === 'ic' ? '#34D399' : '#38BDF8',
             weight: 1.2,
             dashArray: '4 4',
-            fillColor: node.type === 'ic' ? '#0F766E' : '#1D4ED8',
-            fillOpacity: 0.06
+            fillColor: node.type === 'ic' ? '#34D399' : '#38BDF8',
+            fillOpacity: 0.08
           }).addTo(icGroup).bindTooltip(`${node.name} (${(node.radius / 1000).toFixed(1)}km)`, { sticky: true });
         });
       }
@@ -544,8 +570,8 @@
       if (filtered.length === 0) {
         listEl.innerHTML = `
           <div class="text-center py-12 px-4">
-            <p class="text-sm font-bold text-slate-700">현재 필터 조건에 맞는 장소가 없습니다.</p>
-            <p class="text-xs text-slate-500 mt-1">우회시간·평점·영업 중 필터를 완화하거나 상단 메뉴 키워드를 변경해 다시 탐색해 보세요.</p>
+            <p class="text-sm font-bold text-slate-200">현재 필터 조건에 맞는 장소가 없습니다.</p>
+            <p class="text-xs text-slate-400 mt-1">우회시간·평점·영업 중 필터를 완화하거나 상단 메뉴 키워드를 변경해 다시 탐색해 보세요.</p>
           </div>
         `;
       } else {
@@ -555,31 +581,31 @@
           const isFav = state.favorites.includes(p.id);
           const isSel = state.selectedId === p.id;
           const openBadge = openInfo.status === 'open'
-            ? `<span class="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">${openInfo.label}</span>`
+            ? `<span class="text-[11px] font-semibold text-emerald-300 bg-emerald-950/70 border border-emerald-800 px-1.5 py-0.5 rounded">${openInfo.label}</span>`
             : openInfo.status === 'unknown'
-              ? `<span class="text-[11px] font-medium text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">${openInfo.label}</span>`
-              : `<span class="text-[11px] font-semibold text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded">${openInfo.label}</span>`;
+              ? `<span class="text-[11px] font-medium text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">${openInfo.label}</span>`
+              : `<span class="text-[11px] font-semibold text-rose-300 bg-rose-950/70 border border-rose-800 px-1.5 py-0.5 rounded">${openInfo.label}</span>`;
           const ratingBlock = p.rating !== null
-            ? `<span class="font-bold text-amber-600">★ ${p.rating.toFixed(1)}</span><span class="text-slate-400 text-[11px] ml-0.5">(${p.reviews.toLocaleString()})</span>`
+            ? `<span class="font-bold text-amber-400">★ ${p.rating.toFixed(1)}</span><span class="text-slate-400 text-[11px] ml-0.5">(${p.reviews.toLocaleString()})</span>`
             : `<span class="text-[11px] font-medium text-slate-500">Google 평점 미확인</span>`;
 
           return `
             <article data-id="${p.id}"
-              class="place-card bg-white rounded-xl p-3 border ${isSel ? 'border-blue-600 ring-1 ring-blue-600' : 'border-slate-200 hover:border-slate-300'} transition cursor-pointer">
+              class="place-card bg-slate-900 rounded-xl p-3 border ${isSel ? 'border-blue-500 ring-1 ring-blue-500' : 'border-slate-800 hover:border-slate-700'} transition cursor-pointer">
               <div class="flex items-start justify-between gap-2">
                 <div class="min-w-0">
                   <div class="flex items-center gap-1.5 flex-wrap">
                     <span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${meta.cls}">${meta.label}</span>
-                    <span class="text-[11px] font-medium text-slate-500">${p.zone}</span>
-                    ${p.detourVerified ? '<span class="text-[10px] font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">실측 우회</span>' : ''}
-                    ${p.icTrap ? '<span class="text-[10px] font-semibold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded">IC 우회 주의</span>' : ''}
+                    <span class="text-[11px] font-medium text-slate-400">${p.zone}</span>
+                    ${p.detourVerified ? '<span class="text-[10px] font-semibold text-sky-300 bg-sky-950 px-1.5 py-0.5 rounded">실측 우회</span>' : ''}
+                    ${p.icTrap ? '<span class="text-[10px] font-semibold text-rose-300 bg-rose-950 px-1.5 py-0.5 rounded">IC 우회 주의</span>' : ''}
                   </div>
-                  <h3 class="text-sm font-bold text-slate-900 mt-1 truncate">${p.name}</h3>
+                  <h3 class="text-sm font-bold text-slate-100 mt-1 truncate">${p.name}</h3>
                 </div>
                 <div class="flex items-center gap-1.5 shrink-0">
-                  <span class="text-xs font-bold px-2 py-0.5 rounded-lg bg-blue-50 text-blue-800 border border-blue-100">+${p.detourMin}분</span>
+                  <span class="text-xs font-bold px-2 py-0.5 rounded-lg bg-blue-950 text-blue-300 border border-blue-800">+${p.detourMin}분</span>
                   <button type="button" data-fav-id="${p.id}" aria-label="경유지 찜"
-                    class="fav-toggle-btn p-1 rounded-lg hover:bg-slate-100 ${isFav ? 'text-rose-500' : 'text-slate-300 hover:text-rose-400'}">
+                    class="fav-toggle-btn p-1 rounded-lg hover:bg-slate-800 ${isFav ? 'text-rose-400' : 'text-slate-600 hover:text-rose-400'}">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
                   </button>
                 </div>
@@ -587,13 +613,13 @@
               <div class="flex items-center justify-between gap-2 mt-2 text-xs">
                 <div class="flex items-center gap-2">
                   ${ratingBlock}
-                  <span class="text-slate-300">|</span>
-                  <span class="text-slate-500 text-[11px]">출발 +${p.progressMin}분 지점</span>
+                  <span class="text-slate-700">|</span>
+                  <span class="text-slate-400 text-[11px]">출발 +${p.progressMin}분 지점</span>
                 </div>
                 ${openBadge}
               </div>
               <div class="flex flex-wrap gap-1 mt-2">
-                ${(p.tags || []).slice(0, 4).map(t => `<span class="text-[11px] text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">${t}</span>`).join('')}
+                ${(p.tags || []).slice(0, 4).map(t => `<span class="text-[11px] text-slate-300 bg-slate-800 px-1.5 py-0.5 rounded">${t}</span>`).join('')}
               </div>
             </article>
           `;
@@ -602,7 +628,6 @@
       renderQuotaUI();
     }
 
-    // Live API Search
     async function runLiveRouteSearch() {
       const origin = document.getElementById('originInput').value.trim();
       const destination = document.getElementById('destInput').value.trim();
@@ -618,8 +643,8 @@
       state.loading = true;
       btn.disabled = true;
       label.textContent = '탐색 중...';
-      document.getElementById('statusDot').className = 'w-2 h-2 rounded-full bg-amber-500 animate-pulse';
-      document.getElementById('coverageText').textContent = '경로 계산 및 구간별 장소 수집 중...';
+      document.getElementById('statusDot').className = 'w-2 h-2 rounded-full bg-amber-400 animate-pulse';
+      document.getElementById('coverageText').textContent = '경로 계산 및 음식점·카페 수집 중...';
 
       try {
         const resp = await fetch('/api/route-search', {
@@ -629,36 +654,34 @@
             origin,
             destination,
             keyword,
-            categories: ['food', 'cafe', 'play'],
             enrichRatings: state.enrichRatings && state.quota.googleEnterprise < 900
           })
         });
         const data = await resp.json();
-        if (!resp.ok) {
-          throw new Error(data.error || `서버 오류 (${resp.status})`);
-        }
+        if (!resp.ok) throw new Error(data.error || `서버 오류 (${resp.status})`);
 
         state.route = data.route;
         state.samplingNodes = data.samplingNodes || [];
         state.places = data.places || [];
         state.selectedId = null;
 
-        // Track monthly quota usage
         state.quota.googleEnterprise += data.apiCalls?.googleEnterprise || 0;
         state.quota.kakaoLocal += data.apiCalls?.kakaoLocal || 0;
         state.quota.kakaoDirections += data.apiCalls?.kakaoDirections || 0;
         safeSet('gilmat_prod_quota', state.quota);
 
-        document.getElementById('statusDot').className = 'w-2 h-2 rounded-full bg-emerald-500';
+        document.getElementById('statusDot').className = 'w-2 h-2 rounded-full bg-emerald-400';
         document.getElementById('coverageText').textContent =
           `구간 ${data.coverage.completedNodes}/${data.coverage.totalNodes} 완료 · ${data.route.distanceKm}km (약 ${data.route.durationMin}분)`;
+
+        const errNote = data.debug?.googleError ? ` · Google 오류(${data.debug.googleError})` : '';
         document.getElementById('pipelineStats').textContent =
-          `발견 ${data.coverage.totalFound}곳 · 평점 매칭 ${data.coverage.ratingMatched}곳 · 미확인 ${data.coverage.unrated}곳`;
+          `음식점 ${data.coverage.foodCount || 0} · 카페 ${data.coverage.cafeCount || 0} · 평점 매칭 ${data.coverage.ratingMatched}곳${errNote}`;
 
         renderRouteOnMap();
         renderAll();
         if (currentPolyline) map.fitBounds(currentPolyline.getBounds(), { padding: [32, 32] });
-        showToast(`${keyword ? `'${keyword}' ` : ''}총 ${state.places.length}곳을 실시간으로 찾았습니다.`);
+        showToast(`${keyword ? `'${keyword}' ` : ''}음식점·카페 ${state.places.length}곳을 찾았습니다.`);
       } catch (err) {
         document.getElementById('statusDot').className = 'w-2 h-2 rounded-full bg-rose-500';
         document.getElementById('coverageText').textContent = err.message;
@@ -722,48 +745,48 @@
       document.getElementById('detailAddr').textContent = p.address;
 
       const ratingHtml = p.rating !== null
-        ? `<div class="text-xl font-bold text-amber-600">Google ${p.rating.toFixed(1)}<span class="text-xs font-medium text-slate-500 ml-1">/ 5.0 · ${p.reviews.toLocaleString()}명 평가</span></div>`
-        : `<div class="text-sm font-bold text-slate-600">Google 평점 미확인 <span class="text-xs font-normal text-slate-500">(카카오 로컬 수집)</span></div>`;
+        ? `<div class="text-xl font-bold text-amber-400">Google ${p.rating.toFixed(1)}<span class="text-xs font-medium text-slate-400 ml-1">/ 5.0 · ${p.reviews.toLocaleString()}명 평가</span></div>`
+        : `<div class="text-sm font-bold text-slate-300">Google 평점 미확인 <span class="text-xs font-normal text-slate-500">(카카오 로컬 수집)</span></div>`;
 
       document.getElementById('detailBody').innerHTML = `
         <div class="grid grid-cols-2 gap-2.5">
-          <div class="p-3 rounded-xl bg-blue-50/70 border border-blue-100">
-            <div class="text-[11px] font-semibold text-slate-500">${p.detourVerified ? '실측 경유 추가 이동' : '추정 경유 추가 이동'}</div>
-            <div id="detailDetourVal" class="text-xl font-bold text-blue-800 mt-0.5">+${p.detourMin}분</div>
-            <div class="text-[11px] text-slate-500 mt-0.5">경로선 직선 ${p.directKm}km</div>
+          <div class="p-3 rounded-xl bg-blue-950/60 border border-blue-900">
+            <div class="text-[11px] font-semibold text-slate-400">${p.detourVerified ? '실측 경유 추가 이동' : '추정 경유 추가 이동'}</div>
+            <div class="text-xl font-bold text-blue-300 mt-0.5">+${p.detourMin}분</div>
+            <div class="text-[11px] text-slate-400 mt-0.5">경로선 직선 ${p.directKm}km</div>
           </div>
-          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
-            <div class="text-[11px] font-semibold text-slate-500">예상 도착 (${openInfo.etaStr})</div>
-            <div class="text-sm font-bold ${openInfo.isOpen ? 'text-emerald-700' : 'text-rose-700'} mt-1">${openInfo.label}</div>
-            <div class="text-[11px] text-slate-500 mt-0.5">출발 후 약 ${p.progressMin}분</div>
+          <div class="p-3 rounded-xl bg-slate-800/80 border border-slate-700">
+            <div class="text-[11px] font-semibold text-slate-400">예상 도착 (${openInfo.etaStr})</div>
+            <div class="text-sm font-bold ${openInfo.isOpen ? 'text-emerald-400' : 'text-rose-400'} mt-1">${openInfo.label}</div>
+            <div class="text-[11px] text-slate-400 mt-0.5">출발 후 약 ${p.progressMin}분</div>
           </div>
         </div>
 
-        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
-          <div class="text-[11px] font-semibold text-slate-500">원본 평점 및 도로 실측</div>
+        <div class="p-3 rounded-xl bg-slate-800/80 border border-slate-700 space-y-1.5">
+          <div class="text-[11px] font-semibold text-slate-400">원본 평점 및 도로 실측</div>
           ${ratingHtml}
-          <button id="recalcDetourBtn" type="button" class="mt-2 w-full py-1.5 text-xs font-semibold text-blue-700 bg-white border border-blue-200 hover:bg-blue-50 rounded-lg transition">
+          <button id="recalcDetourBtn" type="button" class="mt-2 w-full py-1.5 text-xs font-semibold text-blue-300 bg-slate-900 border border-blue-800 hover:bg-blue-950 rounded-lg transition">
             실제 도로 경유 우회시간 정밀 계산 (길찾기 1회)
           </button>
         </div>
 
-        ${p.icTrap ? `<div class="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800"><strong>고속도로 IC 우회 주의:</strong> ${p.icTrapReason}</div>` : ''}
+        ${p.icTrap ? `<div class="p-3 rounded-xl bg-rose-950/60 border border-rose-800 text-xs text-rose-200"><strong>고속도로 IC 우회 주의:</strong> ${p.icTrapReason}</div>` : ''}
 
         <div class="space-y-2.5 text-xs">
           <div class="flex items-start gap-2">
-            <span class="font-bold text-slate-700 w-16 shrink-0">영업시간</span>
-            <span class="text-slate-600 leading-relaxed">${p.hoursText}</span>
+            <span class="font-bold text-slate-300 w-16 shrink-0">영업시간</span>
+            <span class="text-slate-400 leading-relaxed">${p.hoursText}</span>
           </div>
-          ${p.phone ? `<div class="flex items-start gap-2"><span class="font-bold text-slate-700 w-16 shrink-0">전화번호</span><span class="text-slate-600">${p.phone}</span></div>` : ''}
+          ${p.phone ? `<div class="flex items-start gap-2"><span class="font-bold text-slate-300 w-16 shrink-0">전화번호</span><span class="text-slate-400">${p.phone}</span></div>` : ''}
           <div class="flex items-start gap-2">
-            <span class="font-bold text-slate-700 w-16 shrink-0">업종·태그</span>
-            <div class="flex flex-wrap gap-1">${(p.tags || []).map(t => `<span class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded">${t}</span>`).join('')}</div>
+            <span class="font-bold text-slate-300 w-16 shrink-0">업종·태그</span>
+            <div class="flex flex-wrap gap-1">${(p.tags || []).map(t => `<span class="bg-slate-800 text-slate-300 px-2 py-0.5 rounded">${t}</span>`).join('')}</div>
           </div>
         </div>
 
         <div class="pt-1">
           <button id="detailFavBtn" type="button"
-            class="w-full py-2 rounded-xl text-xs font-bold border transition ${isFav ? 'bg-rose-50 border-rose-300 text-rose-700' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'}">
+            class="w-full py-2 rounded-xl text-xs font-bold border transition ${isFav ? 'bg-rose-950 border-rose-800 text-rose-300' : 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700'}">
             ${isFav ? '♥ 경유지 찜 해제' : '♡ 경유지 후보로 찜하기'}
           </button>
         </div>
@@ -776,10 +799,10 @@
       const googleUrl = p.googleMapsUri || `https://www.google.com/maps/search/?api=1&query=${encName}`;
 
       document.getElementById('detailNavActions').innerHTML = `
-        <a href="${kakaoUrl}" target="_blank" rel="noopener noreferrer" class="py-2 rounded-lg bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold text-xs text-center transition">카카오맵</a>
-        <a href="${tmapUrl}" target="_blank" rel="noopener noreferrer" class="py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs text-center transition">티맵</a>
-        <a href="${naverUrl}" target="_blank" rel="noopener noreferrer" class="py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs text-center transition">네이버</a>
-        <a href="${googleUrl}" target="_blank" rel="noopener noreferrer" class="py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs text-center transition">구글맵</a>
+        <a href="${kakaoUrl}" target="_blank" rel="noopener noreferrer" class="py-2 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs text-center transition">카카오맵</a>
+        <a href="${tmapUrl}" target="_blank" rel="noopener noreferrer" class="py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs text-center transition">티맵</a>
+        <a href="${naverUrl}" target="_blank" rel="noopener noreferrer" class="py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs text-center transition">네이버</a>
+        <a href="${googleUrl}" target="_blank" rel="noopener noreferrer" class="py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs text-center transition">구글맵</a>
       `;
 
       document.getElementById('detailFavBtn').addEventListener('click', () => {
@@ -858,6 +881,20 @@
       if (currentPolyline) map.fitBounds(currentPolyline.getBounds(), { padding: [32, 32] });
     });
 
+    document.getElementById('toggleMapStyleBtn').addEventListener('click', (e) => {
+      if (state.mapStyle === 'dark') {
+        map.removeLayer(darkTileLayer);
+        satelliteTileLayer.addTo(map);
+        state.mapStyle = 'satellite';
+        e.currentTarget.textContent = '다크 맵';
+      } else {
+        map.removeLayer(satelliteTileLayer);
+        darkTileLayer.addTo(map);
+        state.mapStyle = 'dark';
+        e.currentTarget.textContent = '위성 보기';
+      }
+    });
+
     document.getElementById('daySelect').addEventListener('change', (e) => { state.dayOfWeek = parseInt(e.target.value, 10); renderAll(); });
     document.getElementById('departTimeInput').addEventListener('change', (e) => { state.departTime = e.target.value || '12:00'; renderAll(); });
 
@@ -866,8 +903,8 @@
         state.category = btn.dataset.cat;
         document.querySelectorAll('.cat-btn').forEach(b => {
           b.className = b === btn
-            ? 'cat-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-900 text-white shrink-0'
-            : 'cat-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 shrink-0';
+            ? 'cat-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-600 text-white shrink-0'
+            : 'cat-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 shrink-0';
         });
         renderAll();
       });
@@ -876,8 +913,8 @@
     document.getElementById('favOnlyBtn').addEventListener('click', (e) => {
       state.favOnly = !state.favOnly;
       e.currentTarget.className = state.favOnly
-        ? 'px-3 py-1.5 rounded-full text-xs font-semibold bg-rose-600 text-white border border-rose-600 shrink-0 inline-flex items-center gap-1'
-        : 'px-3 py-1.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 shrink-0 inline-flex items-center gap-1';
+        ? 'px-3 py-1.5 rounded-full text-xs font-semibold bg-rose-600 text-white border border-rose-500 shrink-0 inline-flex items-center gap-1'
+        : 'px-3 py-1.5 rounded-full text-xs font-semibold bg-rose-950/60 text-rose-300 border border-rose-800 hover:bg-rose-900/60 shrink-0 inline-flex items-center gap-1';
       renderAll();
     });
 
@@ -907,8 +944,8 @@
         state.minRating = parseFloat(btn.dataset.rating);
         document.querySelectorAll('.rating-btn').forEach(b => {
           b.className = b === btn
-            ? 'rating-btn px-1.5 py-0.5 rounded font-semibold bg-blue-700 text-white'
-            : 'rating-btn px-1.5 py-0.5 rounded font-semibold bg-white border border-slate-200 text-slate-600';
+            ? 'rating-btn px-1.5 py-0.5 rounded font-semibold bg-blue-600 text-white'
+            : 'rating-btn px-1.5 py-0.5 rounded font-semibold bg-slate-900 border border-slate-700 text-slate-300';
         });
         renderAll();
       });
@@ -919,8 +956,8 @@
         state.minReviews = parseInt(btn.dataset.reviews, 10);
         document.querySelectorAll('.review-btn').forEach(b => {
           b.className = b === btn
-            ? 'review-btn px-1.5 py-0.5 rounded font-semibold bg-blue-700 text-white'
-            : 'review-btn px-1.5 py-0.5 rounded font-semibold bg-white border border-slate-200 text-slate-600';
+            ? 'review-btn px-1.5 py-0.5 rounded font-semibold bg-blue-600 text-white'
+            : 'review-btn px-1.5 py-0.5 rounded font-semibold bg-slate-900 border border-slate-700 text-slate-300';
         });
         renderAll();
       });
@@ -991,3 +1028,4 @@
   </script>
 </body>
 </html>
+```
