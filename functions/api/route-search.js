@@ -1,4 +1,3 @@
-```javascript
 // Cloudflare Pages Function: POST /api/route-search
 // 음식점(FD6) · 카페(CE7) 전용 (놀거리 제거, Cloudflare 50회 한도 준수, 백틱 미사용 안전 버전)
 
@@ -457,4 +456,3 @@ function jsonResponse(data, status) {
     }
   });
 }
-```
