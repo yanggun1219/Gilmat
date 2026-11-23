@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gilmat-v2-shell-v1';
+const CACHE_NAME = 'gilmat-v3-shell-v1';
 const SHELL_ASSETS = ['/', '/index.html', '/manifest.json', '/icon.svg'];
 
 self.addEventListener('install', (event) => {
@@ -19,10 +19,7 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
-  // Kakao Local API 정책 준수: /api/ 응답은 절대 캐시하지 않고 항상 실시간 네트워크 요청
-  if (url.pathname.startsWith('/api/')) {
-    return;
-  }
+  if (url.pathname.startsWith('/api/')) return;
   event.respondWith(
     fetch(event.request).catch(() => caches.match(event.request))
   );

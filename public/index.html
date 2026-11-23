@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="ko" class="dark">
 <head>
@@ -7,10 +6,8 @@
   <meta name="theme-color" content="#0B1120">
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
-  <title>길맛 — 경로상 맛집·카페 실시간 탐색</title>
+  <title>길맛 v3.0 — 카카오맵 기반 경로상 맛집·카페 실시간 탐색</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,44 +22,46 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-    /* Dark Leaflet controls */
-    .leaflet-container { background: #0F172A; }
-    .leaflet-control-zoom a {
-      background-color: #1E293B !important;
-      color: #F1F5F9 !important;
-      border-color: #334155 !important;
+    #map {
+      width: 100%;
+      height: 100%;
+      min-height: 340px;
+      background-color: #0F172A;
     }
-    .leaflet-control-zoom a:hover { background-color: #334155 !important; }
-    .leaflet-control-attribution {
-      background: rgba(15, 23, 42, 0.85) !important;
-      color: #94A3B8 !important;
+
+    /* Kakao Map dark filter mode: invert map tiles smoothly while un-inverting our custom overlays */
+    #map.kakao-dark-filter {
+      filter: invert(92%) hue-rotate(180deg) brightness(95%) contrast(92%);
     }
-    .leaflet-control-attribution a { color: #60A5FA !important; }
+    #map.kakao-dark-filter .gm-pin,
+    #map.kakao-dark-filter .gm-endpoint {
+      filter: invert(92%) hue-rotate(180deg) brightness(105%);
+    }
 
     .gm-pin {
-      display: flex;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 2px;
       padding: 3px 8px;
       border-radius: 9999px;
       font-size: 11px;
       font-weight: 700;
       color: #FFFFFF;
-      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.55);
-      border: 1.5px solid rgba(255, 255, 255, 0.85);
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
+      border: 1.5px solid #FFFFFF;
       white-space: nowrap;
+      cursor: pointer;
       transition: transform 0.15s ease;
+      user-select: none;
     }
     .gm-pin:hover, .gm-pin.selected {
       transform: scale(1.18);
-      z-index: 1000 !important;
       border-color: #FACC15;
     }
     .gm-pin-food { background: #D97706; }
     .gm-pin-cafe { background: #2563EB; }
     .gm-pin-unrated { background: #475569; }
-    .gm-pin-trap { background: #DC2626; opacity: 0.78; }
+    .gm-pin-trap { background: #DC2626; opacity: 0.8; }
 
     .gm-endpoint {
       display: flex;
@@ -75,14 +74,8 @@
       font-weight: 800;
       color: #FFFFFF;
       border: 2px solid #FFFFFF;
-      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.6);
-    }
-
-    #map {
-      width: 100%;
-      height: 100%;
-      min-height: 330px;
-      z-index: 1;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.55);
+      user-select: none;
     }
   </style>
 </head>
@@ -92,19 +85,19 @@
   <header class="bg-slate-900/95 backdrop-blur border-b border-slate-800 relative lg:sticky lg:top-0 z-[1000]">
     <div class="px-3 sm:px-5 py-2.5 flex flex-wrap items-center justify-between gap-2.5">
       <div class="flex items-center gap-2.5">
-        <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+        <div class="w-8 h-8 rounded-lg bg-amber-400 text-slate-950 flex items-center justify-center font-extrabold text-sm shadow-sm">
           길
         </div>
         <div>
           <div class="flex items-center gap-1.5">
             <h1 class="text-base font-bold text-white tracking-tight">길맛</h1>
-            <span class="text-[11px] font-semibold px-1.5 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800">v2.1 다크</span>
+            <span class="text-[11px] font-semibold px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800">v3.0 카카오맵</span>
           </div>
-          <p class="text-[11px] text-slate-400 hidden sm:block">경로상 모든 맛집·카페 실시간 탐색</p>
+          <p class="text-[11px] text-slate-400 hidden sm:block">카카오 경로·장소 + Google 평점·영업시간</p>
         </div>
       </div>
 
-      <!-- Live Route & Menu Search Form -->
+      <!-- Route & Menu Search Inputs -->
       <div class="flex flex-wrap items-center gap-1.5 flex-1 max-w-3xl">
         <div class="flex items-center bg-slate-800 rounded-lg px-2.5 py-1.5 flex-1 min-w-[130px] border border-slate-700 focus-within:border-blue-500">
           <span class="w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center mr-1.5 shrink-0">A</span>
@@ -175,27 +168,39 @@
   <div class="flex-1 w-full bg-[#0B1120]">
     <main class="flex flex-col lg:flex-row lg:h-[calc(100vh-108px)]">
 
-      <!-- Left: Isolated High-Res Dark Map Pane -->
-      <section class="map-pane relative z-0 isolate overflow-hidden w-full lg:w-[57%] h-[340px] lg:h-full border-b lg:border-b-0 lg:border-r border-slate-800 shrink-0">
-        <div id="map"></div>
+      <!-- Left: Isolated Kakao Map Pane -->
+      <section class="map-pane relative z-0 isolate overflow-hidden w-full lg:w-[57%] h-[350px] lg:h-full border-b lg:border-b-0 lg:border-r border-slate-800 shrink-0">
+        <div id="map" class="kakao-dark-filter"></div>
 
-        <!-- Map Legend -->
+        <!-- Setup notice if KAKAO_JS_KEY is missing -->
+        <div id="mapKeyNotice" class="hidden absolute inset-0 z-[500] bg-slate-950/92 flex items-center justify-center p-5 text-center">
+          <div class="max-w-sm space-y-2.5 bg-slate-900 border border-slate-700 rounded-2xl p-5 shadow-2xl">
+            <div class="text-amber-400 font-bold text-sm">카카오맵 JavaScript 키 연결 필요</div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              1) 카카오디벨로퍼스 <strong>플랫폼 → Web</strong>에 현재 주소(<code>https://gilmat.pages.dev</code>)를 등록하고,<br>
+              2) Cloudflare <strong>Variables and Secrets</strong>에 <code>KAKAO_JS_KEY</code>로 JavaScript 키를 추가한 뒤 재배포해 주세요.
+            </p>
+          </div>
+        </div>
+
+        <!-- Legend -->
         <div class="absolute bottom-3 left-3 z-[400] bg-slate-900/90 backdrop-blur-sm border border-slate-700 rounded-lg px-2.5 py-1.5 shadow-lg flex flex-wrap items-center gap-2.5 text-[11px] font-medium text-slate-200">
           <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>음식점</span>
           <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>카페</span>
           <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-slate-500"></span>평점 미확인</span>
         </div>
 
-        <!-- Map Style & Fit Route Controls -->
+        <!-- Map Mode Switcher + Fit Route -->
         <div class="absolute top-3 right-3 z-[400] flex items-center gap-1.5">
-          <button id="toggleMapStyleBtn" type="button" title="지도 스타일 전환"
-            class="bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-semibold shadow-lg">
-            위성 보기
-          </button>
+          <div class="flex items-center bg-slate-900/90 border border-slate-700 rounded-lg p-0.5 text-[11px] shadow-lg">
+            <button type="button" data-mapmode="dark" class="mapmode-btn px-2 py-1 rounded font-semibold bg-blue-600 text-white">다크</button>
+            <button type="button" data-mapmode="light" class="mapmode-btn px-2 py-1 rounded font-semibold text-slate-300 hover:text-white">일반</button>
+            <button type="button" data-mapmode="sky" class="mapmode-btn px-2 py-1 rounded font-semibold text-slate-300 hover:text-white">스카이뷰</button>
+          </div>
           <button id="fitRouteBtn" type="button" title="전체 경로 보기"
             class="bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-semibold shadow-lg flex items-center gap-1">
             <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
-            <span>전체 경로</span>
+            <span>전체</span>
           </button>
         </div>
       </section>
@@ -203,7 +208,6 @@
       <!-- Right: Filter & Results Pane -->
       <section class="w-full lg:w-[43%] flex flex-col lg:h-full bg-slate-900">
         <div class="p-3 sm:p-4 border-b border-slate-800 bg-slate-900 space-y-2.5 shrink-0">
-          <!-- Category Pills (음식점 · 카페 전용) + Favorites -->
           <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
             <button type="button" data-cat="all" class="cat-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-600 text-white shrink-0">전체</button>
             <button type="button" data-cat="food" class="cat-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 shrink-0">음식점</button>
@@ -214,7 +218,6 @@
             </button>
           </div>
 
-          <!-- Local Result Filter + Sort -->
           <div class="flex items-center gap-2">
             <div class="relative flex-1">
               <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2"></i>
@@ -233,7 +236,6 @@
             </select>
           </div>
 
-          <!-- Detour Slider + Rating/Review Filters -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-0.5">
             <div class="bg-slate-800/80 border border-slate-700 rounded-lg px-2.5 py-2">
               <div class="flex items-center justify-between text-xs mb-1">
@@ -266,7 +268,6 @@
             </div>
           </div>
 
-          <!-- Driving Toggles -->
           <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-slate-300 pt-0.5">
             <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
               <input id="openAtEtaChk" type="checkbox" class="rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500">
@@ -294,7 +295,7 @@
 
         <div id="placesList" class="flex-1 overflow-y-auto p-2 sm:p-3 space-y-2 bg-[#0B1120]">
           <div class="text-center py-12 px-4 space-y-2">
-            <p class="text-sm font-bold text-slate-200">음식점·카페 실시간 탐색 준비 완료</p>
+            <p class="text-sm font-bold text-slate-200">카카오맵 + Google 평점 탐색 준비 완료</p>
             <p class="text-xs text-slate-400 leading-relaxed">상단에서 출발지·목적지와 원하는 메뉴(선택)를 입력하고 <strong class="text-blue-400">[실시간 탐색]</strong>을 눌러 주세요.</p>
           </div>
         </div>
@@ -326,7 +327,7 @@
     </div>
   </div>
 
-  <!-- Monthly Quota Monitor Modal (Dark Mode) -->
+  <!-- Monthly Quota Monitor Modal -->
   <div id="quotaModal" class="hidden fixed inset-0 z-[1100] bg-black/65 backdrop-blur-[2px] flex items-center justify-center p-3 overscroll-none touch-none">
     <div class="bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
       <div class="p-4 border-b border-slate-800 flex items-center justify-between">
@@ -384,7 +385,7 @@
     }
 
     const now = new Date();
-    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const currentMonthKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
     const storedQuota = safeGet('gilmat_prod_quota', { month: currentMonthKey, googleEnterprise: 0, kakaoLocal: 0, kakaoDirections: 0 });
     if (storedQuota.month !== currentMonthKey) {
       storedQuota.month = currentMonthKey;
@@ -409,11 +410,11 @@
       favOnly: false,
       sortBy: 'detour',
       dayOfWeek: now.getDay(),
-      departTime: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
+      departTime: String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0'),
       showIcLayer: true,
       selectedId: null,
       loading: false,
-      mapStyle: 'dark',
+      mapMode: 'dark',
       favorites: safeGet('gilmat_prod_favs', []),
       quota: storedQuota
     };
@@ -421,32 +422,54 @@
     document.getElementById('daySelect').value = String(state.dayOfWeek);
     document.getElementById('departTimeInput').value = state.departTime;
 
-    // High-Resolution Retina Dark Map (CartoDB Dark Matter) + Satellite Toggle
-    const map = L.map('map', { zoomControl: true }).setView([37.54, 126.85], 11);
+    // Kakao Map handles
+    let kakaoMap = null;
+    let routePolylineObj = null;
+    let endpointOverlays = [];
+    let icCircles = [];
+    let placeOverlays = [];
+    let routeBounds = null;
 
-    const darkTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      subdomains: 'abcd',
-      attribution: '&copy; OpenStreetMap &copy; CARTO',
-      maxZoom: 20
-    });
-    const satelliteTileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      attribution: 'Tiles &copy; Esri',
-      maxZoom: 19
-    });
-    darkTileLayer.addTo(map);
-
-    const routeGroup = L.layerGroup().addTo(map);
-    const icGroup = L.layerGroup().addTo(map);
-    const markerGroup = L.layerGroup().addTo(map);
-    let currentPolyline = null;
+    async function initKakaoMap() {
+      try {
+        const resp = await fetch('/api/config');
+        const cfg = await resp.json();
+        if (!cfg || !cfg.kakaoJsKey) {
+          document.getElementById('mapKeyNotice').classList.remove('hidden');
+          return;
+        }
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=' + encodeURIComponent(cfg.kakaoJsKey) + '&autoload=false';
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+        window.kakao.maps.load(() => {
+          const container = document.getElementById('map');
+          kakaoMap = new kakao.maps.Map(container, {
+            center: new kakao.maps.LatLng(37.54, 126.85),
+            level: 9
+          });
+          const zoomControl = new kakao.maps.ZoomControl();
+          kakaoMap.addControl(zoomControl, kakao.maps.ControlPosition.LEFT);
+          if (state.route) {
+            renderRouteOnMap();
+            renderAll();
+          }
+        });
+      } catch (e) {
+        document.getElementById('mapKeyNotice').classList.remove('hidden');
+      }
+    }
 
     function parseTimeToMin(hhmm) {
-      const [h, m] = (hhmm || '12:00').split(':').map(n => parseInt(n, 10) || 0);
-      return h * 60 + m;
+      const parts = (hhmm || '12:00').split(':');
+      return (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
     }
     function formatMinToHHMM(totalMin) {
       const m = ((totalMin % 1440) + 1440) % 1440;
-      return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+      return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
     }
 
     function evaluateOpenStatus(place) {
@@ -456,10 +479,10 @@
       const etaStr = formatMinToHHMM(etaMin);
 
       if (!Array.isArray(place.googlePeriods) || place.googlePeriods.length === 0) {
-        return { status: 'unknown', label: `${etaStr} 도착 (영업 미확인)`, etaStr, isOpen: true };
+        return { status: 'unknown', label: etaStr + ' 도착 (영업 미확인)', etaStr, isOpen: true };
       }
       if (place.googlePeriods.length === 1 && !place.googlePeriods[0].close) {
-        return { status: 'open', label: `${etaStr} 도착 영업 중`, etaStr, isOpen: true };
+        return { status: 'open', label: etaStr + ' 도착 영업 중', etaStr, isOpen: true };
       }
       for (const p of place.googlePeriods) {
         if (!p.open) continue;
@@ -468,13 +491,13 @@
         const cDay = p.close ? p.close.day : oDay;
         const cMin = p.close ? (p.close.hour || 0) * 60 + (p.close.minute || 0) : 1440;
         if (oDay === etaDay && cDay === etaDay && etaMin >= oMin && etaMin <= cMin) {
-          return { status: 'open', label: `${etaStr} 도착 영업 중`, etaStr, isOpen: true };
+          return { status: 'open', label: etaStr + ' 도착 영업 중', etaStr, isOpen: true };
         }
         if (oDay === etaDay && cDay !== oDay && etaMin >= oMin) {
-          return { status: 'open', label: `${etaStr} 도착 영업 중`, etaStr, isOpen: true };
+          return { status: 'open', label: etaStr + ' 도착 영업 중', etaStr, isOpen: true };
         }
       }
-      return { status: 'closed', label: `${etaStr} 영업 종료/휴무`, etaStr, isOpen: false };
+      return { status: 'closed', label: etaStr + ' 영업 종료/휴무', etaStr, isOpen: false };
     }
 
     function getFilteredPlaces() {
@@ -492,7 +515,7 @@
         }
         if (state.openAtEta && !evaluateOpenStatus(p).isOpen) return false;
         if (kw) {
-          const hay = [p.name, p.zone, p.address, ...(p.tags || [])].join(' ').toLowerCase();
+          const hay = [p.name, p.zone, p.address].concat(p.tags || []).join(' ').toLowerCase();
           if (!hay.includes(kw)) return false;
         }
         return true;
@@ -509,33 +532,75 @@
       return { label: '음식점', cls: 'bg-amber-950 text-amber-300 border border-amber-800', pinCls: 'gm-pin-food' };
     }
 
+    function clearMapOverlays(arr) {
+      arr.forEach(obj => obj.setMap(null));
+      arr.length = 0;
+    }
+
     function renderRouteOnMap() {
-      routeGroup.clearLayers();
-      icGroup.clearLayers();
-      if (!state.route) return;
+      if (!kakaoMap || !state.route) return;
 
-      currentPolyline = L.polyline(state.route.polyline, {
-        color: '#38BDF8', weight: 5, opacity: 0.9, lineJoin: 'round'
-      }).addTo(routeGroup);
+      if (routePolylineObj) routePolylineObj.setMap(null);
+      clearMapOverlays(endpointOverlays);
+      clearMapOverlays(icCircles);
 
-      L.marker([state.route.origin.lat, state.route.origin.lng], {
-        icon: L.divIcon({ className: '', html: '<div class="gm-endpoint" style="background:#2563EB">A</div>', iconSize: [28, 28], iconAnchor: [14, 14] })
-      }).addTo(routeGroup).bindTooltip(`출발: ${state.route.origin.name}`);
+      const path = [];
+      routeBounds = new kakao.maps.LatLngBounds();
+      for (const pt of state.route.polyline) {
+        const ll = new kakao.maps.LatLng(pt[0], pt[1]);
+        path.push(ll);
+        routeBounds.extend(ll);
+      }
 
-      L.marker([state.route.destination.lat, state.route.destination.lng], {
-        icon: L.divIcon({ className: '', html: '<div class="gm-endpoint" style="background:#059669">B</div>', iconSize: [28, 28], iconAnchor: [14, 14] })
-      }).addTo(routeGroup).bindTooltip(`도착: ${state.route.destination.name}`);
+      routePolylineObj = new kakao.maps.Polyline({
+        path,
+        strokeWeight: 5,
+        strokeColor: state.mapMode === 'light' ? '#1D4ED8' : '#38BDF8',
+        strokeOpacity: 0.92,
+        strokeStyle: 'solid'
+      });
+      routePolylineObj.setMap(kakaoMap);
+
+      const startEl = document.createElement('div');
+      startEl.className = 'gm-endpoint';
+      startEl.style.background = '#2563EB';
+      startEl.textContent = 'A';
+      const startOv = new kakao.maps.CustomOverlay({
+        position: new kakao.maps.LatLng(state.route.origin.lat, state.route.origin.lng),
+        content: startEl,
+        yAnchor: 0.5,
+        zIndex: 50
+      });
+      startOv.setMap(kakaoMap);
+      endpointOverlays.push(startOv);
+
+      const endEl = document.createElement('div');
+      endEl.className = 'gm-endpoint';
+      endEl.style.background = '#059669';
+      endEl.textContent = 'B';
+      const endOv = new kakao.maps.CustomOverlay({
+        position: new kakao.maps.LatLng(state.route.destination.lat, state.route.destination.lng),
+        content: endEl,
+        yAnchor: 0.5,
+        zIndex: 50
+      });
+      endOv.setMap(kakaoMap);
+      endpointOverlays.push(endOv);
 
       if (state.showIcLayer) {
         state.samplingNodes.forEach(node => {
-          L.circle([node.lat, node.lng], {
+          const c = new kakao.maps.Circle({
+            center: new kakao.maps.LatLng(node.lat, node.lng),
             radius: node.radius,
-            color: node.type === 'ic' ? '#34D399' : '#38BDF8',
-            weight: 1.2,
-            dashArray: '4 4',
-            fillColor: node.type === 'ic' ? '#34D399' : '#38BDF8',
+            strokeWeight: 1,
+            strokeColor: node.type === 'ic' ? '#10B981' : '#3B82F6',
+            strokeOpacity: 0.6,
+            strokeStyle: 'dashed',
+            fillColor: node.type === 'ic' ? '#10B981' : '#3B82F6',
             fillOpacity: 0.08
-          }).addTo(icGroup).bindTooltip(`${node.name} (${(node.radius / 1000).toFixed(1)}km)`, { sticky: true });
+          });
+          c.setMap(kakaoMap);
+          icCircles.push(c);
         });
       }
     }
@@ -544,36 +609,38 @@
       const filtered = getFilteredPlaces();
       document.getElementById('favCount').textContent = state.favorites.length;
       if (state.places.length > 0) {
-        document.getElementById('resultCountLabel').textContent = `조건 일치 ${filtered.length}곳 (제한 없이 전체 표시)`;
+        document.getElementById('resultCountLabel').textContent = '조건 일치 ' + filtered.length + '곳 (제한 없이 전체 표시)';
       }
 
-      markerGroup.clearLayers();
-      filtered.forEach(p => {
-        const meta = catMeta(p.category);
-        const pinClass = p.icTrap ? 'gm-pin-trap' : (p.rating === null ? 'gm-pin-unrated' : meta.pinCls);
-        const ratingText = p.rating !== null ? `★${p.rating.toFixed(1)}` : '미확인';
-        const isSel = state.selectedId === p.id;
-        const icon = L.divIcon({
-          className: '',
-          html: `<div class="gm-pin ${pinClass} ${isSel ? 'selected' : ''}">${ratingText}</div>`,
-          iconSize: [52, 24],
-          iconAnchor: [26, 12]
+      if (kakaoMap) {
+        clearMapOverlays(placeOverlays);
+        filtered.forEach(p => {
+          const meta = catMeta(p.category);
+          const pinClass = p.icTrap ? 'gm-pin-trap' : (p.rating === null ? 'gm-pin-unrated' : meta.pinCls);
+          const ratingText = p.rating !== null ? '★' + p.rating.toFixed(1) : '미확인';
+          const isSel = state.selectedId === p.id;
+
+          const el = document.createElement('div');
+          el.className = 'gm-pin ' + pinClass + (isSel ? ' selected' : '');
+          el.textContent = ratingText;
+          el.title = p.name + ' (+' + p.detourMin + '분)';
+          el.addEventListener('click', () => selectPlace(p.id, false));
+
+          const ov = new kakao.maps.CustomOverlay({
+            position: new kakao.maps.LatLng(p.lat, p.lng),
+            content: el,
+            yAnchor: 0.5,
+            zIndex: isSel ? 90 : 20
+          });
+          ov.setMap(kakaoMap);
+          placeOverlays.push(ov);
         });
-        L.marker([p.lat, p.lng], { icon })
-          .addTo(markerGroup)
-          .bindTooltip(`${p.name} (+${p.detourMin}분)`, { direction: 'top', offset: [0, -10] })
-          .on('click', () => selectPlace(p.id, false));
-      });
+      }
 
       const listEl = document.getElementById('placesList');
       if (state.places.length === 0) return;
       if (filtered.length === 0) {
-        listEl.innerHTML = `
-          <div class="text-center py-12 px-4">
-            <p class="text-sm font-bold text-slate-200">현재 필터 조건에 맞는 장소가 없습니다.</p>
-            <p class="text-xs text-slate-400 mt-1">우회시간·평점·영업 중 필터를 완화하거나 상단 메뉴 키워드를 변경해 다시 탐색해 보세요.</p>
-          </div>
-        `;
+        listEl.innerHTML = '<div class="text-center py-12 px-4"><p class="text-sm font-bold text-slate-200">현재 필터 조건에 맞는 장소가 없습니다.</p><p class="text-xs text-slate-400 mt-1">우회시간·평점·영업 중 필터를 완화하거나 상단 메뉴 키워드를 변경해 다시 탐색해 보세요.</p></div>';
       } else {
         listEl.innerHTML = filtered.map(p => {
           const meta = catMeta(p.category);
@@ -581,48 +648,39 @@
           const isFav = state.favorites.includes(p.id);
           const isSel = state.selectedId === p.id;
           const openBadge = openInfo.status === 'open'
-            ? `<span class="text-[11px] font-semibold text-emerald-300 bg-emerald-950/70 border border-emerald-800 px-1.5 py-0.5 rounded">${openInfo.label}</span>`
+            ? '<span class="text-[11px] font-semibold text-emerald-300 bg-emerald-950/70 border border-emerald-800 px-1.5 py-0.5 rounded">' + openInfo.label + '</span>'
             : openInfo.status === 'unknown'
-              ? `<span class="text-[11px] font-medium text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">${openInfo.label}</span>`
-              : `<span class="text-[11px] font-semibold text-rose-300 bg-rose-950/70 border border-rose-800 px-1.5 py-0.5 rounded">${openInfo.label}</span>`;
+              ? '<span class="text-[11px] font-medium text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">' + openInfo.label + '</span>'
+              : '<span class="text-[11px] font-semibold text-rose-300 bg-rose-950/70 border border-rose-800 px-1.5 py-0.5 rounded">' + openInfo.label + '</span>';
           const ratingBlock = p.rating !== null
-            ? `<span class="font-bold text-amber-400">★ ${p.rating.toFixed(1)}</span><span class="text-slate-400 text-[11px] ml-0.5">(${p.reviews.toLocaleString()})</span>`
-            : `<span class="text-[11px] font-medium text-slate-500">Google 평점 미확인</span>`;
+            ? '<span class="font-bold text-amber-400">★ ' + p.rating.toFixed(1) + '</span><span class="text-slate-400 text-[11px] ml-0.5">(' + p.reviews.toLocaleString() + ')</span>'
+            : '<span class="text-[11px] font-medium text-slate-500">Google 평점 미확인</span>';
 
-          return `
-            <article data-id="${p.id}"
-              class="place-card bg-slate-900 rounded-xl p-3 border ${isSel ? 'border-blue-500 ring-1 ring-blue-500' : 'border-slate-800 hover:border-slate-700'} transition cursor-pointer">
-              <div class="flex items-start justify-between gap-2">
-                <div class="min-w-0">
-                  <div class="flex items-center gap-1.5 flex-wrap">
-                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${meta.cls}">${meta.label}</span>
-                    <span class="text-[11px] font-medium text-slate-400">${p.zone}</span>
-                    ${p.detourVerified ? '<span class="text-[10px] font-semibold text-sky-300 bg-sky-950 px-1.5 py-0.5 rounded">실측 우회</span>' : ''}
-                    ${p.icTrap ? '<span class="text-[10px] font-semibold text-rose-300 bg-rose-950 px-1.5 py-0.5 rounded">IC 우회 주의</span>' : ''}
-                  </div>
-                  <h3 class="text-sm font-bold text-slate-100 mt-1 truncate">${p.name}</h3>
-                </div>
-                <div class="flex items-center gap-1.5 shrink-0">
-                  <span class="text-xs font-bold px-2 py-0.5 rounded-lg bg-blue-950 text-blue-300 border border-blue-800">+${p.detourMin}분</span>
-                  <button type="button" data-fav-id="${p.id}" aria-label="경유지 찜"
-                    class="fav-toggle-btn p-1 rounded-lg hover:bg-slate-800 ${isFav ? 'text-rose-400' : 'text-slate-600 hover:text-rose-400'}">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-                  </button>
-                </div>
-              </div>
-              <div class="flex items-center justify-between gap-2 mt-2 text-xs">
-                <div class="flex items-center gap-2">
-                  ${ratingBlock}
-                  <span class="text-slate-700">|</span>
-                  <span class="text-slate-400 text-[11px]">출발 +${p.progressMin}분 지점</span>
-                </div>
-                ${openBadge}
-              </div>
-              <div class="flex flex-wrap gap-1 mt-2">
-                ${(p.tags || []).slice(0, 4).map(t => `<span class="text-[11px] text-slate-300 bg-slate-800 px-1.5 py-0.5 rounded">${t}</span>`).join('')}
-              </div>
-            </article>
-          `;
+          const tagsHtml = (p.tags || []).slice(0, 4).map(t => '<span class="text-[11px] text-slate-300 bg-slate-800 px-1.5 py-0.5 rounded">' + t + '</span>').join('');
+          return '<article data-id="' + p.id + '" class="place-card bg-slate-900 rounded-xl p-3 border ' + (isSel ? 'border-blue-500 ring-1 ring-blue-500' : 'border-slate-800 hover:border-slate-700') + ' transition cursor-pointer">' +
+            '<div class="flex items-start justify-between gap-2">' +
+              '<div class="min-w-0">' +
+                '<div class="flex items-center gap-1.5 flex-wrap">' +
+                  '<span class="text-[10px] font-bold px-1.5 py-0.5 rounded ' + meta.cls + '">' + meta.label + '</span>' +
+                  '<span class="text-[11px] font-medium text-slate-400">' + p.zone + '</span>' +
+                  (p.detourVerified ? '<span class="text-[10px] font-semibold text-sky-300 bg-sky-950 px-1.5 py-0.5 rounded">실측 우회</span>' : '') +
+                  (p.icTrap ? '<span class="text-[10px] font-semibold text-rose-300 bg-rose-950 px-1.5 py-0.5 rounded">IC 우회 주의</span>' : '') +
+                '</div>' +
+                '<h3 class="text-sm font-bold text-slate-100 mt-1 truncate">' + p.name + '</h3>' +
+              '</div>' +
+              '<div class="flex items-center gap-1.5 shrink-0">' +
+                '<span class="text-xs font-bold px-2 py-0.5 rounded-lg bg-blue-950 text-blue-300 border border-blue-800">+' + p.detourMin + '분</span>' +
+                '<button type="button" data-fav-id="' + p.id + '" aria-label="경유지 찜" class="fav-toggle-btn p-1 rounded-lg hover:bg-slate-800 ' + (isFav ? 'text-rose-400' : 'text-slate-600 hover:text-rose-400') + '">' +
+                  '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="' + (isFav ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>' +
+                '</button>' +
+              '</div>' +
+            '</div>' +
+            '<div class="flex items-center justify-between gap-2 mt-2 text-xs">' +
+              '<div class="flex items-center gap-2">' + ratingBlock + '<span class="text-slate-700">|</span><span class="text-slate-400 text-[11px]">출발 +' + p.progressMin + '분 지점</span></div>' +
+              openBadge +
+            '</div>' +
+            '<div class="flex flex-wrap gap-1 mt-2">' + tagsHtml + '</div>' +
+          '</article>';
         }).join('');
       }
       renderQuotaUI();
@@ -644,7 +702,7 @@
       btn.disabled = true;
       label.textContent = '탐색 중...';
       document.getElementById('statusDot').className = 'w-2 h-2 rounded-full bg-amber-400 animate-pulse';
-      document.getElementById('coverageText').textContent = '경로 계산 및 음식점·카페 수집 중...';
+      document.getElementById('coverageText').textContent = '카카오 경로 계산 및 음식점·카페 수집 중...';
 
       try {
         const resp = await fetch('/api/route-search', {
@@ -657,31 +715,35 @@
             enrichRatings: state.enrichRatings && state.quota.googleEnterprise < 900
           })
         });
-        const data = await resp.json();
-        if (!resp.ok) throw new Error(data.error || `서버 오류 (${resp.status})`);
+        const rawText = await resp.text();
+        let data = null;
+        try { data = rawText ? JSON.parse(rawText) : null; } catch {}
+        if (!resp.ok || !data) {
+          throw new Error((data && data.error) || ('API 응답 오류 (HTTP ' + resp.status + ')'));
+        }
 
         state.route = data.route;
         state.samplingNodes = data.samplingNodes || [];
         state.places = data.places || [];
         state.selectedId = null;
 
-        state.quota.googleEnterprise += data.apiCalls?.googleEnterprise || 0;
-        state.quota.kakaoLocal += data.apiCalls?.kakaoLocal || 0;
-        state.quota.kakaoDirections += data.apiCalls?.kakaoDirections || 0;
+        state.quota.googleEnterprise += (data.apiCalls && data.apiCalls.googleEnterprise) || 0;
+        state.quota.kakaoLocal += (data.apiCalls && data.apiCalls.kakaoLocal) || 0;
+        state.quota.kakaoDirections += (data.apiCalls && data.apiCalls.kakaoDirections) || 0;
         safeSet('gilmat_prod_quota', state.quota);
 
         document.getElementById('statusDot').className = 'w-2 h-2 rounded-full bg-emerald-400';
         document.getElementById('coverageText').textContent =
-          `구간 ${data.coverage.completedNodes}/${data.coverage.totalNodes} 완료 · ${data.route.distanceKm}km (약 ${data.route.durationMin}분)`;
+          '구간 ' + data.coverage.completedNodes + '/' + data.coverage.totalNodes + ' 완료 · ' + data.route.distanceKm + 'km (약 ' + data.route.durationMin + '분)';
 
-        const errNote = data.debug?.googleError ? ` · Google 오류(${data.debug.googleError})` : '';
+        const errNote = (data.debug && data.debug.googleError) ? (' · Google 오류(' + data.debug.googleError + ')') : '';
         document.getElementById('pipelineStats').textContent =
-          `음식점 ${data.coverage.foodCount || 0} · 카페 ${data.coverage.cafeCount || 0} · 평점 매칭 ${data.coverage.ratingMatched}곳${errNote}`;
+          '음식점 ' + (data.coverage.foodCount || 0) + ' · 카페 ' + (data.coverage.cafeCount || 0) + ' · 평점 매칭 ' + data.coverage.ratingMatched + '곳' + errNote;
 
         renderRouteOnMap();
         renderAll();
-        if (currentPolyline) map.fitBounds(currentPolyline.getBounds(), { padding: [32, 32] });
-        showToast(`${keyword ? `'${keyword}' ` : ''}음식점·카페 ${state.places.length}곳을 찾았습니다.`);
+        if (kakaoMap && routeBounds) kakaoMap.setBounds(routeBounds);
+        showToast((keyword ? ("'" + keyword + "' ") : '') + '음식점·카페 ' + state.places.length + '곳을 찾았습니다.');
       } catch (err) {
         document.getElementById('statusDot').className = 'w-2 h-2 rounded-full bg-rose-500';
         document.getElementById('coverageText').textContent = err.message;
@@ -705,7 +767,7 @@
         document.documentElement.style.overflow = 'hidden';
         document.body.style.overflow = 'hidden';
         document.body.style.position = 'fixed';
-        document.body.style.top = `-${savedScrollY}px`;
+        document.body.style.top = '-' + savedScrollY + 'px';
         document.body.style.left = '0';
         document.body.style.right = '0';
         document.body.style.width = '100%';
@@ -723,12 +785,15 @@
       }
     }
 
-    function selectPlace(id, panMap = true) {
+    function selectPlace(id, panMap) {
       state.selectedId = id;
       const p = state.places.find(item => item.id === id);
       if (!p) return;
       renderAll();
-      if (panMap) map.flyTo([p.lat, p.lng], 14, { duration: 0.4 });
+      if (panMap && kakaoMap) {
+        kakaoMap.panTo(new kakao.maps.LatLng(p.lat, p.lng));
+        if (kakaoMap.getLevel() > 6) kakaoMap.setLevel(5);
+      }
       openDetailDrawer(p);
     }
 
@@ -739,71 +804,57 @@
 
       const catBadge = document.getElementById('detailCatBadge');
       catBadge.textContent = meta.label;
-      catBadge.className = `text-[11px] font-bold px-2 py-0.5 rounded-full ${meta.cls}`;
+      catBadge.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full ' + meta.cls;
       document.getElementById('detailSourceBadge').textContent = p.source;
       document.getElementById('detailName').textContent = p.name;
       document.getElementById('detailAddr').textContent = p.address;
 
       const ratingHtml = p.rating !== null
-        ? `<div class="text-xl font-bold text-amber-400">Google ${p.rating.toFixed(1)}<span class="text-xs font-medium text-slate-400 ml-1">/ 5.0 · ${p.reviews.toLocaleString()}명 평가</span></div>`
-        : `<div class="text-sm font-bold text-slate-300">Google 평점 미확인 <span class="text-xs font-normal text-slate-500">(카카오 로컬 수집)</span></div>`;
+        ? '<div class="text-xl font-bold text-amber-400">Google ' + p.rating.toFixed(1) + '<span class="text-xs font-medium text-slate-400 ml-1">/ 5.0 · ' + p.reviews.toLocaleString() + '명 평가</span></div>'
+        : '<div class="text-sm font-bold text-slate-300">Google 평점 미확인 <span class="text-xs font-normal text-slate-500">(카카오 로컬 수집)</span></div>';
 
-      document.getElementById('detailBody').innerHTML = `
-        <div class="grid grid-cols-2 gap-2.5">
-          <div class="p-3 rounded-xl bg-blue-950/60 border border-blue-900">
-            <div class="text-[11px] font-semibold text-slate-400">${p.detourVerified ? '실측 경유 추가 이동' : '추정 경유 추가 이동'}</div>
-            <div class="text-xl font-bold text-blue-300 mt-0.5">+${p.detourMin}분</div>
-            <div class="text-[11px] text-slate-400 mt-0.5">경로선 직선 ${p.directKm}km</div>
-          </div>
-          <div class="p-3 rounded-xl bg-slate-800/80 border border-slate-700">
-            <div class="text-[11px] font-semibold text-slate-400">예상 도착 (${openInfo.etaStr})</div>
-            <div class="text-sm font-bold ${openInfo.isOpen ? 'text-emerald-400' : 'text-rose-400'} mt-1">${openInfo.label}</div>
-            <div class="text-[11px] text-slate-400 mt-0.5">출발 후 약 ${p.progressMin}분</div>
-          </div>
-        </div>
-
-        <div class="p-3 rounded-xl bg-slate-800/80 border border-slate-700 space-y-1.5">
-          <div class="text-[11px] font-semibold text-slate-400">원본 평점 및 도로 실측</div>
-          ${ratingHtml}
-          <button id="recalcDetourBtn" type="button" class="mt-2 w-full py-1.5 text-xs font-semibold text-blue-300 bg-slate-900 border border-blue-800 hover:bg-blue-950 rounded-lg transition">
-            실제 도로 경유 우회시간 정밀 계산 (길찾기 1회)
-          </button>
-        </div>
-
-        ${p.icTrap ? `<div class="p-3 rounded-xl bg-rose-950/60 border border-rose-800 text-xs text-rose-200"><strong>고속도로 IC 우회 주의:</strong> ${p.icTrapReason}</div>` : ''}
-
-        <div class="space-y-2.5 text-xs">
-          <div class="flex items-start gap-2">
-            <span class="font-bold text-slate-300 w-16 shrink-0">영업시간</span>
-            <span class="text-slate-400 leading-relaxed">${p.hoursText}</span>
-          </div>
-          ${p.phone ? `<div class="flex items-start gap-2"><span class="font-bold text-slate-300 w-16 shrink-0">전화번호</span><span class="text-slate-400">${p.phone}</span></div>` : ''}
-          <div class="flex items-start gap-2">
-            <span class="font-bold text-slate-300 w-16 shrink-0">업종·태그</span>
-            <div class="flex flex-wrap gap-1">${(p.tags || []).map(t => `<span class="bg-slate-800 text-slate-300 px-2 py-0.5 rounded">${t}</span>`).join('')}</div>
-          </div>
-        </div>
-
-        <div class="pt-1">
-          <button id="detailFavBtn" type="button"
-            class="w-full py-2 rounded-xl text-xs font-bold border transition ${isFav ? 'bg-rose-950 border-rose-800 text-rose-300' : 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700'}">
-            ${isFav ? '♥ 경유지 찜 해제' : '♡ 경유지 후보로 찜하기'}
-          </button>
-        </div>
-      `;
+      const tagsHtml = (p.tags || []).map(t => '<span class="bg-slate-800 text-slate-300 px-2 py-0.5 rounded">' + t + '</span>').join('');
+      document.getElementById('detailBody').innerHTML =
+        '<div class="grid grid-cols-2 gap-2.5">' +
+          '<div class="p-3 rounded-xl bg-blue-950/60 border border-blue-900">' +
+            '<div class="text-[11px] font-semibold text-slate-400">' + (p.detourVerified ? '실측 경유 추가 이동' : '추정 경유 추가 이동') + '</div>' +
+            '<div class="text-xl font-bold text-blue-300 mt-0.5">+' + p.detourMin + '분</div>' +
+            '<div class="text-[11px] text-slate-400 mt-0.5">경로선 직선 ' + p.directKm + 'km</div>' +
+          '</div>' +
+          '<div class="p-3 rounded-xl bg-slate-800/80 border border-slate-700">' +
+            '<div class="text-[11px] font-semibold text-slate-400">예상 도착 (' + openInfo.etaStr + ')</div>' +
+            '<div class="text-sm font-bold ' + (openInfo.isOpen ? 'text-emerald-400' : 'text-rose-400') + ' mt-1">' + openInfo.label + '</div>' +
+            '<div class="text-[11px] text-slate-400 mt-0.5">출발 후 약 ' + p.progressMin + '분</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="p-3 rounded-xl bg-slate-800/80 border border-slate-700 space-y-1.5">' +
+          '<div class="text-[11px] font-semibold text-slate-400">원본 평점 및 도로 실측</div>' +
+          ratingHtml +
+          '<button id="recalcDetourBtn" type="button" class="mt-2 w-full py-1.5 text-xs font-semibold text-blue-300 bg-slate-900 border border-blue-800 hover:bg-blue-950 rounded-lg transition">실제 도로 경유 우회시간 정밀 계산 (길찾기 1회)</button>' +
+        '</div>' +
+        (p.icTrap ? '<div class="p-3 rounded-xl bg-rose-950/60 border border-rose-800 text-xs text-rose-200"><strong>고속도로 IC 우회 주의:</strong> ' + p.icTrapReason + '</div>' : '') +
+        '<div class="space-y-2.5 text-xs">' +
+          '<div class="flex items-start gap-2"><span class="font-bold text-slate-300 w-16 shrink-0">영업시간</span><span class="text-slate-400 leading-relaxed">' + p.hoursText + '</span></div>' +
+          (p.phone ? '<div class="flex items-start gap-2"><span class="font-bold text-slate-300 w-16 shrink-0">전화번호</span><span class="text-slate-400">' + p.phone + '</span></div>' : '') +
+          '<div class="flex items-start gap-2"><span class="font-bold text-slate-300 w-16 shrink-0">업종·태그</span><div class="flex flex-wrap gap-1">' + tagsHtml + '</div></div>' +
+        '</div>' +
+        '<div class="pt-1">' +
+          '<button id="detailFavBtn" type="button" class="w-full py-2 rounded-xl text-xs font-bold border transition ' + (isFav ? 'bg-rose-950 border-rose-800 text-rose-300' : 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700') + '">' +
+            (isFav ? '♥ 경유지 찜 해제' : '♡ 경유지 후보로 찜하기') +
+          '</button>' +
+        '</div>';
 
       const encName = encodeURIComponent(p.name);
-      const kakaoUrl = p.kakaoUrl || `https://map.kakao.com/link/to/${encName},${p.lat},${p.lng}`;
-      const tmapUrl = `tmap://route?goalname=${encName}&goalx=${p.lng}&goaly=${p.lat}`;
-      const naverUrl = `https://map.naver.com/v5/search/${encName}`;
-      const googleUrl = p.googleMapsUri || `https://www.google.com/maps/search/?api=1&query=${encName}`;
+      const kakaoUrl = p.kakaoUrl || ('https://map.kakao.com/link/to/' + encName + ',' + p.lat + ',' + p.lng);
+      const tmapUrl = 'tmap://route?goalname=' + encName + '&goalx=' + p.lng + '&goaly=' + p.lat;
+      const naverUrl = 'https://map.naver.com/v5/search/' + encName;
+      const googleUrl = p.googleMapsUri || ('https://www.google.com/maps/search/?api=1&query=' + encName);
 
-      document.getElementById('detailNavActions').innerHTML = `
-        <a href="${kakaoUrl}" target="_blank" rel="noopener noreferrer" class="py-2 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs text-center transition">카카오맵</a>
-        <a href="${tmapUrl}" target="_blank" rel="noopener noreferrer" class="py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs text-center transition">티맵</a>
-        <a href="${naverUrl}" target="_blank" rel="noopener noreferrer" class="py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs text-center transition">네이버</a>
-        <a href="${googleUrl}" target="_blank" rel="noopener noreferrer" class="py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs text-center transition">구글맵</a>
-      `;
+      document.getElementById('detailNavActions').innerHTML =
+        '<a href="' + kakaoUrl + '" target="_blank" rel="noopener noreferrer" class="py-2 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs text-center transition">카카오맵</a>' +
+        '<a href="' + tmapUrl + '" target="_blank" rel="noopener noreferrer" class="py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs text-center transition">티맵</a>' +
+        '<a href="' + naverUrl + '" target="_blank" rel="noopener noreferrer" class="py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs text-center transition">네이버</a>' +
+        '<a href="' + googleUrl + '" target="_blank" rel="noopener noreferrer" class="py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs text-center transition">구글맵</a>';
 
       document.getElementById('detailFavBtn').addEventListener('click', () => {
         toggleFavorite(p.id);
@@ -834,7 +885,7 @@
           safeSet('gilmat_prod_quota', state.quota);
           renderAll();
           openDetailDrawer(p);
-          showToast(`${p.name} 실측 우회시간: +${data.detourMin}분 (총 ${data.viaDurationMin}분)`);
+          showToast(p.name + ' 실측 우회시간: +' + data.detourMin + '분 (총 ' + data.viaDurationMin + '분)');
         } catch (err) {
           btn.disabled = false;
           btn.textContent = '실제 도로 경유 우회시간 정밀 계산 (길찾기 1회)';
@@ -857,11 +908,11 @@
 
     function renderQuotaUI() {
       const gPct = Math.min(100, Math.round((state.quota.googleEnterprise / 900) * 100));
-      document.getElementById('quotaGoogleText').textContent = `${state.quota.googleEnterprise} / 900건`;
-      document.getElementById('quotaGoogleBar').style.width = `${gPct}%`;
-      document.getElementById('quotaKakaoText').textContent = `${state.quota.kakaoLocal.toLocaleString()}건`;
-      document.getElementById('quotaKakaoBar').style.width = `${Math.min(100, Math.max(1, Math.round((state.quota.kakaoLocal / 100000) * 100)))}%`;
-      document.getElementById('quotaDirText').textContent = `${state.quota.kakaoDirections.toLocaleString()}건`;
+      document.getElementById('quotaGoogleText').textContent = state.quota.googleEnterprise + ' / 900건';
+      document.getElementById('quotaGoogleBar').style.width = gPct + '%';
+      document.getElementById('quotaKakaoText').textContent = state.quota.kakaoLocal.toLocaleString() + '건';
+      document.getElementById('quotaKakaoBar').style.width = Math.min(100, Math.max(1, Math.round((state.quota.kakaoLocal / 100000) * 100))) + '%';
+      document.getElementById('quotaDirText').textContent = state.quota.kakaoDirections.toLocaleString() + '건';
     }
 
     function showToast(msg) {
@@ -878,21 +929,31 @@
       if (e.key === 'Enter') runLiveRouteSearch();
     });
     document.getElementById('fitRouteBtn').addEventListener('click', () => {
-      if (currentPolyline) map.fitBounds(currentPolyline.getBounds(), { padding: [32, 32] });
+      if (kakaoMap && routeBounds) kakaoMap.setBounds(routeBounds);
     });
 
-    document.getElementById('toggleMapStyleBtn').addEventListener('click', (e) => {
-      if (state.mapStyle === 'dark') {
-        map.removeLayer(darkTileLayer);
-        satelliteTileLayer.addTo(map);
-        state.mapStyle = 'satellite';
-        e.currentTarget.textContent = '다크 맵';
-      } else {
-        map.removeLayer(satelliteTileLayer);
-        darkTileLayer.addTo(map);
-        state.mapStyle = 'dark';
-        e.currentTarget.textContent = '위성 보기';
-      }
+    document.querySelectorAll('.mapmode-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const mode = btn.dataset.mapmode;
+        state.mapMode = mode;
+        const mapEl = document.getElementById('map');
+        if (mode === 'dark') {
+          mapEl.classList.add('kakao-dark-filter');
+          if (kakaoMap) kakaoMap.setMapTypeId(kakao.maps.MapTypeId.ROADMAP);
+        } else if (mode === 'light') {
+          mapEl.classList.remove('kakao-dark-filter');
+          if (kakaoMap) kakaoMap.setMapTypeId(kakao.maps.MapTypeId.ROADMAP);
+        } else {
+          mapEl.classList.remove('kakao-dark-filter');
+          if (kakaoMap) kakaoMap.setMapTypeId(kakao.maps.MapTypeId.HYBRID);
+        }
+        document.querySelectorAll('.mapmode-btn').forEach(b => {
+          b.className = b === btn
+            ? 'mapmode-btn px-2 py-1 rounded font-semibold bg-blue-600 text-white'
+            : 'mapmode-btn px-2 py-1 rounded font-semibold text-slate-300 hover:text-white';
+        });
+        if (state.route) renderRouteOnMap();
+      });
     });
 
     document.getElementById('daySelect').addEventListener('change', (e) => { state.dayOfWeek = parseInt(e.target.value, 10); renderAll(); });
@@ -935,7 +996,7 @@
     document.getElementById('sortSelect').addEventListener('change', (e) => { state.sortBy = e.target.value; renderAll(); });
     document.getElementById('detourSlider').addEventListener('input', (e) => {
       state.maxDetour = parseInt(e.target.value, 10);
-      document.getElementById('detourValLabel').textContent = `+${state.maxDetour}분 이내`;
+      document.getElementById('detourValLabel').textContent = '+' + state.maxDetour + '분 이내';
       renderAll();
     });
 
@@ -1012,15 +1073,16 @@
       const blob = new Blob([JSON.stringify({ route: state.route, count: list.length, places: list }, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url; a.download = 'gilmat-live-results.json';
+      a.href = url; a.download = 'gilmat-kakao-results.json';
       document.body.appendChild(a); a.click(); a.remove();
       URL.revokeObjectURL(url);
-      showToast(`${list.length}곳을 JSON으로 저장했습니다.`);
+      showToast(list.length + '곳을 JSON으로 저장했습니다.');
     });
 
     window.addEventListener('load', () => {
       if (window.lucide) lucide.createIcons();
       renderQuotaUI();
+      initKakaoMap();
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js').catch(() => {});
       }
@@ -1028,4 +1090,3 @@
   </script>
 </body>
 </html>
-```
