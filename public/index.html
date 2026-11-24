@@ -42,9 +42,9 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      padding: 3px 9px;
+      padding: 4px 11px;
       border-radius: 9999px;
-      font-size: 11px;
+      font-size: 13px;
       font-weight: 900;
       color: #FFFFFF;
       border: 2px solid #141414;
@@ -69,10 +69,10 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 30px;
-      height: 30px;
+      width: 34px;
+      height: 34px;
       border-radius: 9999px;
-      font-size: 13px;
+      font-size: 15px;
       font-weight: 900;
       border: 2px solid #141414;
       box-shadow: 2px 2px 0 #141414;
@@ -89,17 +89,17 @@
       <!-- Tier 1: Slim Brand Bar -->
       <div class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-2">
-          <img src="/icon-192.png" alt="길맛" class="w-8 h-8 rounded-lg border-[1.5px] border-[#141414] shrink-0">
-          <h1 class="text-xl font-black text-[#141414] tracking-tighter leading-none">길맛</h1>
+          <img src="/icon-192.png" alt="길맛" class="w-9 h-9 rounded-xl border-2 border-[#141414] shrink-0">
+          <h1 class="text-2xl font-black text-[#141414] tracking-tighter leading-none">길맛</h1>
         </div>
         <div class="flex items-center gap-1.5">
           <button id="openCuratedBtn" type="button"
-            class="bg-[#C8F526] hover:bg-[#B8E61E] text-[#141414] border-[1.5px] border-[#141414] text-xs font-black px-2.5 py-1.5 rounded-full flex items-center gap-1 transition">
+            class="bg-[#C8F526] hover:bg-[#B8E61E] text-[#141414] border-[1.5px] border-[#141414] text-sm font-black px-3 py-1.5 rounded-full flex items-center gap-1 transition">
             <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
             <span>유명맛집 도감</span>
           </button>
           <button id="openQuotaBtn" type="button" title="무료 쿼터 모니터"
-            class="bg-white hover:bg-[#F3EFE6] text-[#57534E] hover:text-[#141414] border border-[#141414]/25 text-xs font-bold px-2.5 py-1.5 rounded-full flex items-center gap-1 transition">
+            class="bg-white hover:bg-[#F3EFE6] text-[#57534E] hover:text-[#141414] border border-[#141414]/25 text-sm font-bold px-3 py-1.5 rounded-full flex items-center gap-1 transition">
             <i data-lucide="gauge" class="w-3.5 h-3.5"></i>
             <span>쿼터</span>
           </button>
@@ -110,11 +110,11 @@
       <div class="bg-white border-2 border-[#141414] rounded-2xl p-3 space-y-2.5 shadow-[3px_3px_0_#141414]">
         <!-- Sub-row: Travel Mode (Left) + Departure Time (Right) -->
         <div class="flex items-center justify-between gap-2">
-          <div class="flex items-center bg-[#FAF8F3] p-0.5 rounded-xl border border-[#141414]/25 text-xs">
+          <div class="flex items-center bg-[#FAF8F3] p-0.5 rounded-xl border border-[#141414]/25 text-sm">
             <button type="button" data-travel="car" class="travel-btn px-3 py-1 rounded-lg font-black bg-[#141414] text-[#C8F526]">차량</button>
             <button type="button" data-travel="walk" class="travel-btn px-3 py-1 rounded-lg font-bold text-[#57534E] hover:text-[#141414]">도보</button>
           </div>
-          <div class="flex items-center gap-1 bg-[#FAF8F3] rounded-xl px-2.5 py-1 border border-[#141414]/20 text-xs">
+          <div class="flex items-center gap-1 bg-[#FAF8F3] rounded-xl px-3 py-1.5 border border-[#141414]/20 text-sm">
             <select id="daySelect" aria-label="출발 요일" class="bg-transparent font-extrabold text-[#141414] outline-none cursor-pointer">
               <option value="0">일</option>
               <option value="1">월</option>
@@ -133,19 +133,19 @@
         <!-- Core Inputs: A & B + Swap Button -->
         <div class="flex items-stretch gap-2">
           <div class="flex-1 space-y-1.5 min-w-0">
-            <div id="originWrap" class="flex items-center bg-[#FAF8F3] rounded-xl px-3 py-2.5 border-2 border-[#141414] transition">
-              <span class="w-5 h-5 rounded-full bg-[#FF5449] text-white text-[11px] font-black flex items-center justify-center mr-2 shrink-0">A</span>
+            <div id="originWrap" class="flex items-center bg-[#FAF8F3] rounded-xl px-3.5 py-3 border-2 border-[#141414] transition">
+              <span class="w-6 h-6 rounded-full bg-[#FF5449] text-white text-xs font-black flex items-center justify-center mr-2.5 shrink-0">A</span>
               <input id="originInput" type="text" value="" placeholder="출발지 입력 (예: 광화문, 성북구)" aria-label="출발지"
-                class="bg-transparent text-sm font-bold text-[#141414] placeholder-[#A8A29E] w-full outline-none min-w-0">
+                class="bg-transparent text-lg font-extrabold text-[#141414] placeholder-[#A8A29E] w-full outline-none min-w-0">
               <button id="gpsOriginBtn" type="button" title="현위치로 출발지 입력"
                 class="ml-1.5 text-[#57534E] hover:text-[#FF5449] p-1 rounded-lg shrink-0">
                 <i data-lucide="locate-fixed" class="w-4 h-4"></i>
               </button>
             </div>
-            <div id="destWrap" class="flex items-center bg-[#FAF8F3] rounded-xl px-3 py-2.5 border border-[#141414]/25 transition">
-              <span class="w-5 h-5 rounded-full bg-[#C8F526] text-[#141414] border border-[#141414] text-[11px] font-black flex items-center justify-center mr-2 shrink-0">B</span>
+            <div id="destWrap" class="flex items-center bg-[#FAF8F3] rounded-xl px-3.5 py-3 border border-[#141414]/25 transition">
+              <span class="w-6 h-6 rounded-full bg-[#C8F526] text-[#141414] border border-[#141414] text-xs font-black flex items-center justify-center mr-2.5 shrink-0">B</span>
               <input id="destInput" type="text" value="" placeholder="도착지 입력 (예: 강남역, 해운대)" aria-label="도착지"
-                class="bg-transparent text-sm font-bold text-[#141414] placeholder-[#A8A29E] w-full outline-none min-w-0">
+                class="bg-transparent text-lg font-extrabold text-[#141414] placeholder-[#A8A29E] w-full outline-none min-w-0">
               <button id="gpsDestBtn" type="button" title="현위치로 도착지 입력"
                 class="ml-1.5 text-[#57534E] hover:text-[#141414] p-1 rounded-lg shrink-0">
                 <i data-lucide="locate-fixed" class="w-4 h-4"></i>
@@ -153,14 +153,14 @@
             </div>
           </div>
           <button id="swapRouteBtn" type="button" title="출발지·도착지 바꾸기"
-            class="w-10 rounded-xl bg-[#FAF8F3] hover:bg-[#C8F526] border border-[#141414]/25 hover:border-[#141414] text-[#141414] flex items-center justify-center shrink-0 transition">
+            class="w-11 rounded-xl bg-[#FAF8F3] hover:bg-[#C8F526] border border-[#141414]/25 hover:border-[#141414] text-[#141414] flex items-center justify-center shrink-0 transition">
             <i data-lucide="arrow-up-down" class="w-4 h-4"></i>
           </button>
         </div>
 
         <!-- Quick-Fill Chips (Lightweight, Secondary Weight) -->
-        <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar text-xs pt-0.5">
-          <span id="targetFieldBadge" class="text-[11px] font-black text-[#FF5449] shrink-0 mr-0.5">A에 입력:</span>
+        <div class="flex items-center gap-2 overflow-x-auto no-scrollbar text-sm pt-0.5">
+          <span id="targetFieldBadge" class="text-xs font-black text-[#FF5449] shrink-0 mr-0.5">A에 입력:</span>
           <button id="quickGpsChip" type="button" class="px-2.5 py-1 rounded-full bg-[#141414] text-[#C8F526] font-extrabold shrink-0 inline-flex items-center gap-1">
             <i data-lucide="locate-fixed" class="w-3 h-3"></i>
             <span>현위치</span>
@@ -174,7 +174,7 @@
 
         <!-- Primary Hero CTA -->
         <button id="scanRouteBtn" type="button"
-          class="w-full py-3 rounded-xl bg-[#FF5449] hover:bg-[#F04338] active:translate-y-[1px] disabled:opacity-60 text-white border-2 border-[#141414] shadow-[2px_2px_0_#141414] text-base font-black flex items-center justify-center gap-2 transition tracking-tight">
+          class="w-full py-3.5 rounded-xl bg-[#FF5449] hover:bg-[#F04338] active:translate-y-[1px] disabled:opacity-60 text-white border-2 border-[#141414] shadow-[2px_2px_0_#141414] text-lg font-black flex items-center justify-center gap-2 transition tracking-tight">
           <i data-lucide="radar" class="w-4 h-4"></i>
           <span id="scanBtnLabel">경로 맛집 탐색</span>
         </button>
@@ -182,7 +182,7 @@
     </div>
 
     <!-- Tier 3: Subtle Status Strip -->
-    <div class="bg-[#F3EFE6] border-t border-[#141414]/15 px-3 sm:px-5 py-1.5 flex items-center justify-between gap-2 text-[11px] text-[#57534E]">
+    <div class="bg-[#F3EFE6] border-t border-[#141414]/15 px-3 sm:px-5 py-1.5 flex items-center justify-between gap-2 text-xs text-[#57534E]">
       <div class="flex items-center gap-2 min-w-0">
         <span id="statusDot" class="w-2 h-2 rounded-full bg-[#141414]/40 shrink-0"></span>
         <span id="coverageText" class="font-bold text-[#44403C] truncate">출발지(A)와 도착지(B)를 입력해 주세요.</span>
@@ -218,14 +218,14 @@
           </div>
         </div>
 
-        <div class="absolute bottom-3 left-3 z-[400] bg-white border-2 border-[#141414] rounded-xl px-2.5 py-1.5 shadow-[2px_2px_0_#141414] flex flex-wrap items-center gap-2.5 text-[11px] font-black text-[#141414]">
+        <div class="absolute bottom-3 left-3 z-[400] bg-white border-2 border-[#141414] rounded-xl px-2.5 py-1.5 shadow-[2px_2px_0_#141414] flex flex-wrap items-center gap-2.5 text-xs font-black text-[#141414]">
           <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-[#FF5449] border border-[#141414]"></span>음식점</span>
           <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-[#2563EB] border border-[#141414]"></span>카페</span>
           <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-[#57534E] border border-[#141414]"></span>미확인</span>
         </div>
 
         <div class="absolute top-3 right-3 z-[400] flex items-center gap-1.5">
-          <div class="flex items-center bg-white border-2 border-[#141414] rounded-xl p-0.5 text-[11px] shadow-[2px_2px_0_#141414]">
+          <div class="flex items-center bg-white border-2 border-[#141414] rounded-xl p-0.5 text-xs shadow-[2px_2px_0_#141414]">
             <button type="button" data-mapmode="light" class="mapmode-btn px-2.5 py-1 rounded-lg font-black bg-[#141414] text-[#C8F526]">일반</button>
             <button type="button" data-mapmode="dark" class="mapmode-btn px-2.5 py-1 rounded-lg font-bold text-[#57534E] hover:text-[#141414]">다크</button>
             <button type="button" data-mapmode="sky" class="mapmode-btn px-2.5 py-1 rounded-lg font-bold text-[#57534E] hover:text-[#141414]">스카이뷰</button>
@@ -242,14 +242,14 @@
       <section class="w-full lg:w-[44%] flex flex-col lg:h-full bg-[#FAF8F3]">
         <div class="p-3 sm:p-4 border-b-2 border-[#141414] bg-[#FAF8F3] space-y-2.5 shrink-0">
           <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
-            <button type="button" data-cat="all" class="cat-btn px-3.5 py-1.5 rounded-full text-xs font-black bg-[#141414] text-[#C8F526] border-[1.5px] border-[#141414] shrink-0">전체</button>
-            <button type="button" data-cat="food" class="cat-btn px-3.5 py-1.5 rounded-full text-xs font-bold bg-white text-[#141414] border-[1.5px] border-[#141414]/35 hover:border-[#141414] shrink-0">음식점</button>
-            <button type="button" data-cat="cafe" class="cat-btn px-3.5 py-1.5 rounded-full text-xs font-bold bg-white text-[#141414] border-[1.5px] border-[#141414]/35 hover:border-[#141414] shrink-0">카페</button>
-            <button type="button" id="curatedOnlyBtn" class="px-3.5 py-1.5 rounded-full text-xs font-bold bg-white text-[#141414] border-[1.5px] border-[#141414]/35 hover:border-[#141414] shrink-0 inline-flex items-center gap-1">
+            <button type="button" data-cat="all" class="cat-btn px-4 py-2 rounded-full text-sm font-black bg-[#141414] text-[#C8F526] border-[1.5px] border-[#141414] shrink-0">전체</button>
+            <button type="button" data-cat="food" class="cat-btn px-4 py-2 rounded-full text-sm font-bold bg-white text-[#141414] border-[1.5px] border-[#141414]/35 hover:border-[#141414] shrink-0">음식점</button>
+            <button type="button" data-cat="cafe" class="cat-btn px-4 py-2 rounded-full text-sm font-bold bg-white text-[#141414] border-[1.5px] border-[#141414]/35 hover:border-[#141414] shrink-0">카페</button>
+            <button type="button" id="curatedOnlyBtn" class="px-4 py-2 rounded-full text-sm font-bold bg-white text-[#141414] border-[1.5px] border-[#141414]/35 hover:border-[#141414] shrink-0 inline-flex items-center gap-1">
               <i data-lucide="sparkles" class="w-3 h-3"></i>
               <span>유명맛집 (<span id="curatedMatchCount">0</span>)</span>
             </button>
-            <button type="button" id="favOnlyBtn" class="px-3.5 py-1.5 rounded-full text-xs font-bold bg-white text-[#141414] border-[1.5px] border-[#141414]/35 hover:border-[#141414] shrink-0 inline-flex items-center gap-1">
+            <button type="button" id="favOnlyBtn" class="px-4 py-2 rounded-full text-sm font-bold bg-white text-[#141414] border-[1.5px] border-[#141414]/35 hover:border-[#141414] shrink-0 inline-flex items-center gap-1">
               <i data-lucide="heart" class="w-3 h-3"></i>
               <span>찜 (<span id="favCount">0</span>)</span>
             </button>
@@ -260,17 +260,17 @@
             <div class="relative flex-1">
               <i data-lucide="search" class="w-4 h-4 text-[#141414] absolute left-3 top-1/2 -translate-y-1/2"></i>
               <input id="filterInput" type="text" placeholder="결과 내 재검색 · 메뉴 (예: 냉면, 국밥)"
-                class="w-full pl-9 pr-8 py-2 text-xs sm:text-sm font-bold bg-white border-[1.5px] border-[#141414] text-[#141414] placeholder-[#A8A29E] rounded-xl outline-none">
+                class="w-full pl-9 pr-8 py-2.5 text-base sm:text-lg font-extrabold bg-white border-2 border-[#141414] text-[#141414] placeholder-[#A8A29E] rounded-xl outline-none">
               <button id="clearFilterBtn" type="button" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-[#57534E] hover:text-[#141414]">
                 <i data-lucide="x" class="w-4 h-4"></i>
               </button>
             </div>
             <button id="menuRouteSearchBtn" type="button" title="입력한 메뉴로 경로 전체 실시간 재탐색"
-              class="px-3 py-2 text-xs font-black bg-[#C8F526] hover:bg-[#B8E61E] text-[#141414] border-[1.5px] border-[#141414] rounded-xl shrink-0 transition">
+              class="px-3.5 py-2.5 text-sm font-black bg-[#C8F526] hover:bg-[#B8E61E] text-[#141414] border-[1.5px] border-[#141414] rounded-xl shrink-0 transition">
               메뉴 탐색
             </button>
             <select id="sortSelect" aria-label="정렬 기준"
-              class="text-xs font-black bg-white border-[1.5px] border-[#141414] rounded-xl px-2.5 py-2 text-[#141414] outline-none cursor-pointer">
+              class="text-sm font-black bg-white border-[1.5px] border-[#141414] rounded-xl px-3 py-2.5 text-[#141414] outline-none cursor-pointer">
               <option value="detour">우회순</option>
               <option value="rating">평점순</option>
               <option value="reviews">평가수순</option>
@@ -280,7 +280,7 @@
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
             <div class="bg-white border-[1.5px] border-[#141414] rounded-xl px-3 py-2">
-              <div class="flex items-center justify-between text-xs mb-1">
+              <div class="flex items-center justify-between text-sm mb-1.5">
                 <span class="font-extrabold text-[#141414]">최대 우회</span>
                 <span id="detourValLabel" class="font-black text-[#FF5449]">+15분 이내</span>
               </div>
@@ -289,7 +289,7 @@
             </div>
 
             <div class="bg-white border-[1.5px] border-[#141414] rounded-xl px-3 py-2 flex flex-col justify-between">
-              <div class="flex items-center justify-between gap-1 text-[11px]">
+              <div class="flex items-center justify-between gap-1 text-xs sm:text-sm">
                 <span class="font-extrabold text-[#141414]">평점</span>
                 <div class="flex items-center gap-1">
                   <button type="button" data-rating="0" class="rating-btn px-2 py-0.5 rounded-md font-black bg-[#141414] text-[#C8F526] border border-[#141414]">전체</button>
@@ -298,7 +298,7 @@
                   <button type="button" data-rating="4.8" class="rating-btn px-2 py-0.5 rounded-md font-bold bg-[#FAF8F3] border border-[#141414]/30 text-[#141414]">4.8+</button>
                 </div>
               </div>
-              <div class="flex items-center justify-between gap-1 text-[11px] mt-1.5">
+              <div class="flex items-center justify-between gap-1 text-xs sm:text-sm mt-2">
                 <span class="font-extrabold text-[#141414]">리뷰</span>
                 <div class="flex items-center gap-1">
                   <button type="button" data-reviews="0" class="review-btn px-2 py-0.5 rounded-md font-black bg-[#141414] text-[#C8F526] border border-[#141414]">전체</button>
@@ -310,7 +310,7 @@
             </div>
           </div>
 
-          <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-[#141414] pt-0.5">
+          <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-[#141414] pt-1">
             <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
               <input id="openAtEtaChk" type="checkbox" class="rounded accent-[#141414]">
               <span class="font-bold">도착 시 영업 중</span>
@@ -330,8 +330,8 @@
           </div>
 
           <div class="flex items-center justify-between pt-1.5 border-t border-[#141414]/15 text-xs">
-            <span id="resultCountLabel" class="text-sm font-black text-[#141414]">탐색 대기 중</span>
-            <button id="resetFiltersBtn" type="button" class="text-[#57534E] hover:text-[#FF5449] font-extrabold">필터 초기화</button>
+            <span id="resultCountLabel" class="text-base font-black text-[#141414]">탐색 대기 중</span>
+            <button id="resetFiltersBtn" type="button" class="text-sm text-[#57534E] hover:text-[#FF5449] font-extrabold">필터 초기화</button>
           </div>
         </div>
 
@@ -357,17 +357,17 @@
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
-      <div class="p-4 overflow-y-auto space-y-4 text-xs overscroll-contain touch-pan-y">
+      <div class="p-4 overflow-y-auto space-y-4 text-sm overscroll-contain touch-pan-y">
         <div class="space-y-2.5">
           <div>
             <label class="block font-black text-[#141414] mb-1" for="homeAddrInput">집 주소</label>
             <input id="homeAddrInput" type="text" placeholder="예: 서울 성북구 오패산로 46"
-              class="w-full px-3 py-2.5 bg-white border-[1.5px] border-[#141414] rounded-xl font-bold text-[#141414] outline-none">
+              class="w-full px-3.5 py-3 bg-white border-2 border-[#141414] rounded-xl text-base sm:text-lg font-extrabold text-[#141414] outline-none">
           </div>
           <div>
             <label class="block font-black text-[#141414] mb-1" for="workAddrInput">회사 주소</label>
             <input id="workAddrInput" type="text" placeholder="예: 서울 강남구 테헤란로 152"
-              class="w-full px-3 py-2.5 bg-white border-[1.5px] border-[#141414] rounded-xl font-bold text-[#141414] outline-none">
+              class="w-full px-3.5 py-3 bg-white border-2 border-[#141414] rounded-xl text-base sm:text-lg font-extrabold text-[#141414] outline-none">
           </div>
           <button id="saveHomeWorkBtn" type="button" class="w-full py-2.5 rounded-xl bg-[#141414] text-[#C8F526] border-2 border-[#141414] font-black text-sm">
             집·회사 주소 저장
@@ -378,9 +378,9 @@
           <div class="font-black text-[#141414]">즐겨찾기 주소 추가</div>
           <div class="flex gap-1.5">
             <input id="newFavLabelInput" type="text" placeholder="별칭"
-              class="w-24 px-2.5 py-2 bg-white border-[1.5px] border-[#141414] rounded-xl font-bold text-[#141414] outline-none">
+              class="w-28 px-3 py-2.5 bg-white border-2 border-[#141414] rounded-xl text-base font-extrabold text-[#141414] outline-none">
             <input id="newFavAddrInput" type="text" placeholder="주소 또는 장소명"
-              class="flex-1 px-2.5 py-2 bg-white border-[1.5px] border-[#141414] rounded-xl font-bold text-[#141414] outline-none">
+              class="flex-1 px-3 py-2.5 bg-white border-2 border-[#141414] rounded-xl text-base font-extrabold text-[#141414] outline-none">
             <button id="addFavAddrBtn" type="button" class="px-3 py-2 rounded-xl bg-[#C8F526] text-[#141414] border-[1.5px] border-[#141414] font-black shrink-0">추가</button>
           </div>
           <div id="favAddrList" class="space-y-1.5 pt-1"></div>
@@ -407,7 +407,7 @@
         <button type="button" data-csrc="최자로드" class="csrc-btn px-3 py-1 rounded-full font-bold bg-white text-[#141414] border-[1.5px] border-[#141414]/35">최자로드</button>
         <button type="button" data-csrc="또간집" class="csrc-btn px-3 py-1 rounded-full font-bold bg-white text-[#141414] border-[1.5px] border-[#141414]/35">또간집</button>
         <input id="curatedSearchInput" type="text" placeholder="상호·지역·메뉴 검색"
-          class="flex-1 min-w-[140px] px-3 py-1.5 bg-white border-[1.5px] border-[#141414] rounded-xl font-bold text-[#141414] outline-none">
+          class="w-full sm:flex-1 min-w-[160px] px-3.5 py-2.5 bg-white border-2 border-[#141414] rounded-xl text-base sm:text-lg font-extrabold text-[#141414] outline-none">
       </div>
       <div id="curatedDirList" class="p-3 overflow-y-auto flex-1 space-y-2 text-xs overscroll-contain touch-pan-y"></div>
     </div>
@@ -592,14 +592,14 @@
       const dWrap = document.getElementById('destWrap');
       if (field === 'origin') {
         badge.textContent = 'A에 입력:';
-        badge.className = 'text-[11px] font-black text-[#FF5449] shrink-0 mr-0.5';
-        oWrap.className = 'flex items-center bg-[#FAF8F3] rounded-xl px-3 py-2.5 border-2 border-[#141414] transition';
-        dWrap.className = 'flex items-center bg-[#FAF8F3] rounded-xl px-3 py-2.5 border border-[#141414]/25 transition';
+        badge.className = 'text-xs font-black text-[#FF5449] shrink-0 mr-0.5';
+        oWrap.className = 'flex items-center bg-[#FAF8F3] rounded-xl px-3.5 py-3 border-2 border-[#141414] transition';
+        dWrap.className = 'flex items-center bg-[#FAF8F3] rounded-xl px-3.5 py-3 border border-[#141414]/25 transition';
       } else {
         badge.textContent = 'B에 입력:';
-        badge.className = 'text-[11px] font-black text-[#141414] bg-[#C8F526] px-1.5 py-0.5 rounded shrink-0 mr-0.5';
-        oWrap.className = 'flex items-center bg-[#FAF8F3] rounded-xl px-3 py-2.5 border border-[#141414]/25 transition';
-        dWrap.className = 'flex items-center bg-[#FAF8F3] rounded-xl px-3 py-2.5 border-2 border-[#141414] transition';
+        badge.className = 'text-xs font-black text-[#141414] bg-[#C8F526] px-2 py-0.5 rounded shrink-0 mr-0.5';
+        oWrap.className = 'flex items-center bg-[#FAF8F3] rounded-xl px-3.5 py-3 border border-[#141414]/25 transition';
+        dWrap.className = 'flex items-center bg-[#FAF8F3] rounded-xl px-3.5 py-3 border-2 border-[#141414] transition';
       }
     }
 
@@ -868,34 +868,34 @@
           const isFav = state.favorites.includes(p.id);
           const isSel = state.selectedId === p.id;
           const openBadge = openInfo.status === 'open'
-            ? '<span class="text-[11px] font-extrabold text-[#141414] bg-[#D9F99D] border-[1.5px] border-[#141414] px-2 py-0.5 rounded-full">' + openInfo.label + '</span>'
+            ? '<span class="text-xs font-extrabold text-[#141414] bg-[#D9F99D] border-[1.5px] border-[#141414] px-2 py-0.5 rounded-full">' + openInfo.label + '</span>'
             : openInfo.status === 'unknown'
-              ? '<span class="text-[11px] font-semibold text-[#57534E] bg-[#F3EFE6] px-2 py-0.5 rounded-full">' + openInfo.label + '</span>'
-              : '<span class="text-[11px] font-extrabold text-white bg-[#FF5449] border-[1.5px] border-[#141414] px-2 py-0.5 rounded-full">' + openInfo.label + '</span>';
+              ? '<span class="text-xs font-bold text-[#57534E] bg-[#F3EFE6] px-2 py-0.5 rounded-full">' + openInfo.label + '</span>'
+              : '<span class="text-xs font-extrabold text-white bg-[#FF5449] border-[1.5px] border-[#141414] px-2 py-0.5 rounded-full">' + openInfo.label + '</span>';
           const ratingBlock = p.rating !== null
-            ? '<span class="text-base font-black text-[#141414] tracking-tight"><span class="text-[#FF5449]">★</span> ' + p.rating.toFixed(1) + '</span><span class="text-[#57534E] text-xs font-semibold ml-1">(' + p.reviews.toLocaleString() + ')</span>'
+            ? '<span class="text-lg font-black text-[#141414] tracking-tight"><span class="text-[#FF5449]">★</span> ' + p.rating.toFixed(1) + '</span><span class="text-[#57534E] text-xs font-semibold ml-1">(' + p.reviews.toLocaleString() + ')</span>'
             : '<span class="text-xs font-bold text-[#78716C]">평점 미확인</span>';
 
-          const tagsHtml = (p.tags || []).slice(0, 4).map(t => '<span class="text-[11px] font-bold text-[#44403C] bg-[#FAF8F3] border border-[#141414]/20 px-2 py-0.5 rounded-md">' + t + '</span>').join('');
+          const tagsHtml = (p.tags || []).slice(0, 4).map(t => '<span class="text-xs font-bold text-[#44403C] bg-[#FAF8F3] border border-[#141414]/20 px-2 py-0.5 rounded-md">' + t + '</span>').join('');
           return '<article data-id="' + p.id + '" class="place-card bg-white rounded-2xl p-3.5 border-2 ' + (isSel ? 'border-[#141414] bg-[#FFFDF7] shadow-[3px_3px_0_#141414]' : 'border-[#141414] hover:shadow-[3px_3px_0_#141414]') + ' transition cursor-pointer">' +
             '<div class="flex items-center justify-between gap-2">' +
               '<div class="flex items-center gap-2">' +
-                '<span class="text-lg font-black leading-none px-2.5 py-1 rounded-xl bg-[#C8F526] text-[#141414] border-2 border-[#141414] tracking-tight">+' + p.detourMin + '분</span>' +
+                '<span class="text-xl font-black leading-none px-3 py-1.5 rounded-xl bg-[#C8F526] text-[#141414] border-2 border-[#141414] tracking-tight">+' + p.detourMin + '분</span>' +
                 '<div class="flex items-baseline">' + ratingBlock + '</div>' +
               '</div>' +
               '<button type="button" data-fav-id="' + p.id + '" aria-label="경유지 찜" class="fav-toggle-btn p-1.5 rounded-xl border-[1.5px] border-[#141414]/20 hover:border-[#141414] ' + (isFav ? 'bg-[#FF5449] text-white border-[#141414]' : 'bg-[#FAF8F3] text-[#141414]/50 hover:text-[#FF5449]') + '">' +
                 '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="' + (isFav ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>' +
               '</button>' +
             '</div>' +
-            '<h3 class="text-lg font-black text-[#141414] mt-2 leading-tight tracking-tight truncate">' + p.name + '</h3>' +
+            '<h3 class="text-xl font-black text-[#141414] mt-2.5 leading-tight tracking-tight truncate">' + p.name + '</h3>' +
             '<div class="flex items-center gap-1.5 flex-wrap mt-2">' +
-              (p.curatedSources && p.curatedSources.length ? p.curatedSources.map(src => '<span class="text-[11px] font-black px-2 py-0.5 rounded-full border-[1.5px] ' + getCuratedBadgeCls(src) + '">' + src + '</span>').join('') : '') +
-              '<span class="text-[11px] font-extrabold px-2 py-0.5 rounded-full ' + meta.cls + '">' + meta.label + '</span>' +
+              (p.curatedSources && p.curatedSources.length ? p.curatedSources.map(src => '<span class="text-xs font-black px-2.5 py-0.5 rounded-full border-[1.5px] ' + getCuratedBadgeCls(src) + '">' + src + '</span>').join('') : '') +
+              '<span class="text-xs font-extrabold px-2.5 py-0.5 rounded-full ' + meta.cls + '">' + meta.label + '</span>' +
               (p.detourVerified ? '<span class="text-[11px] font-extrabold text-[#141414] bg-[#E0F2FE] border-[1.5px] border-[#141414] px-2 py-0.5 rounded-full">실측</span>' : '') +
-              (p.icTrap ? '<span class="text-[11px] font-extrabold text-white bg-[#FF5449] border-[1.5px] border-[#141414] px-2 py-0.5 rounded-full">IC 주의</span>' : '') +
+              (p.icTrap ? '<span class="text-xs font-extrabold text-white bg-[#FF5449] border-[1.5px] border-[#141414] px-2 py-0.5 rounded-full">IC 주의</span>' : '') +
               openBadge +
             '</div>' +
-            '<div class="flex items-center justify-between gap-2 mt-2.5 pt-2 border-t border-[#141414]/10 text-xs">' +
+            '<div class="flex items-center justify-between gap-2 mt-2.5 pt-2.5 border-t border-[#141414]/10 text-sm">' +
               '<span class="font-bold text-[#57534E] truncate">' + p.zone + ' · 출발 +' + p.progressMin + '분</span>' +
               '<div class="flex flex-wrap gap-1 shrink-0">' + tagsHtml + '</div>' +
             '</div>' +
@@ -1052,7 +1052,7 @@
       const showRecalc = state.route && state.route.mode === 'car';
 
       document.getElementById('detailBody').innerHTML =
-        '<a href="' + naverMapUrl + '" target="_blank" rel="noopener noreferrer" class="block w-full py-3 rounded-xl bg-[#141414] hover:bg-[#292524] text-[#C8F526] border-2 border-[#141414] text-sm font-black text-center shadow-[3px_3px_0_#FF5449] transition">네이버지도에서 사진·블로그 리뷰 보기 →</a>' +
+        '<a href="' + naverMapUrl + '" target="_blank" rel="noopener noreferrer" class="block w-full py-3 rounded-xl bg-[#141414] hover:bg-[#292524] text-[#C8F526] border-2 border-[#141414] text-base font-black text-center shadow-[3px_3px_0_#FF5449] transition">네이버지도에서 사진·블로그 리뷰 보기 →</a>' +
         '<div class="grid grid-cols-2 gap-2.5">' +
           '<div class="p-3.5 rounded-2xl bg-[#C8F526] border-2 border-[#141414]">' +
             '<div class="text-[11px] font-extrabold text-[#141414]">' + (p.detourVerified ? '실측 추가 이동' : '추정 추가 이동') + '</div>' +
@@ -1071,7 +1071,7 @@
           (showRecalc ? '<button id="recalcDetourBtn" type="button" class="mt-2 w-full py-2 text-xs font-black text-[#141414] bg-[#FAF8F3] border-[1.5px] border-[#141414] hover:bg-[#C8F526] rounded-xl transition">실제 도로 우회시간 정밀 계산 (1회)</button>' : '') +
         '</div>' +
         (p.icTrap ? '<div class="p-3 rounded-2xl bg-[#FF5449] border-2 border-[#141414] text-xs font-bold text-white"><strong>고속도로 IC 우회 주의:</strong> ' + p.icTrapReason + '</div>' : '') +
-        '<div class="space-y-2.5 text-xs bg-white border-2 border-[#141414] rounded-2xl p-3.5">' +
+        '<div class="space-y-2.5 text-sm bg-white border-2 border-[#141414] rounded-2xl p-4">' +
           '<div class="flex items-start gap-2"><span class="font-black text-[#141414] w-16 shrink-0">영업시간</span><span class="text-[#44403C] font-medium leading-relaxed">' + p.hoursText + '</span></div>' +
           (p.phone ? '<div class="flex items-start gap-2"><span class="font-black text-[#141414] w-16 shrink-0">전화번호</span><span class="text-[#44403C] font-bold">' + p.phone + '</span></div>' : '') +
           '<div class="flex items-start gap-2"><span class="font-black text-[#141414] w-16 shrink-0">업종·태그</span><div class="flex flex-wrap gap-1">' + tagsHtml + '</div></div>' +
@@ -1088,10 +1088,10 @@
       const googleUrl = p.googleMapsUri || ('https://www.google.com/maps/search/?api=1&query=' + encName);
 
       document.getElementById('detailNavActions').innerHTML =
-        '<a href="' + naverMapUrl + '" target="_blank" rel="noopener noreferrer" class="py-2.5 rounded-xl bg-[#03C75A] text-white border-[1.5px] border-[#141414] font-black text-xs text-center">네이버</a>' +
-        '<a href="' + kakaoUrl + '" target="_blank" rel="noopener noreferrer" class="py-2.5 rounded-xl bg-[#FFE14D] text-[#141414] border-[1.5px] border-[#141414] font-black text-xs text-center">카카오</a>' +
-        '<a href="' + tmapUrl + '" target="_blank" rel="noopener noreferrer" class="py-2.5 rounded-xl bg-[#FF5449] text-white border-[1.5px] border-[#141414] font-black text-xs text-center">티맵</a>' +
-        '<a href="' + googleUrl + '" target="_blank" rel="noopener noreferrer" class="py-2.5 rounded-xl bg-white text-[#141414] border-[1.5px] border-[#141414] font-black text-xs text-center">구글맵</a>';
+        '<a href="' + naverMapUrl + '" target="_blank" rel="noopener noreferrer" class="py-3 rounded-xl bg-[#03C75A] text-white border-[1.5px] border-[#141414] font-black text-sm text-center">네이버</a>' +
+        '<a href="' + kakaoUrl + '" target="_blank" rel="noopener noreferrer" class="py-3 rounded-xl bg-[#FFE14D] text-[#141414] border-[1.5px] border-[#141414] font-black text-sm text-center">카카오</a>' +
+        '<a href="' + tmapUrl + '" target="_blank" rel="noopener noreferrer" class="py-3 rounded-xl bg-[#FF5449] text-white border-[1.5px] border-[#141414] font-black text-sm text-center">티맵</a>' +
+        '<a href="' + googleUrl + '" target="_blank" rel="noopener noreferrer" class="py-3 rounded-xl bg-white text-[#141414] border-[1.5px] border-[#141414] font-black text-sm text-center">구글맵</a>';
 
       document.getElementById('detailFavBtn').addEventListener('click', () => {
         toggleFavorite(p.id);
@@ -1303,8 +1303,8 @@
         state.category = btn.dataset.cat;
         document.querySelectorAll('.cat-btn').forEach(b => {
           b.className = b === btn
-            ? 'cat-btn px-3.5 py-1.5 rounded-full text-xs font-black bg-[#141414] text-[#C8F526] border-[1.5px] border-[#141414] shrink-0'
-            : 'cat-btn px-3.5 py-1.5 rounded-full text-xs font-bold bg-white text-[#141414] border-[1.5px] border-[#141414]/35 hover:border-[#141414] shrink-0';
+            ? 'cat-btn px-4 py-2 rounded-full text-sm font-black bg-[#141414] text-[#C8F526] border-[1.5px] border-[#141414] shrink-0'
+            : 'cat-btn px-4 py-2 rounded-full text-sm font-bold bg-white text-[#141414] border-[1.5px] border-[#141414]/35 hover:border-[#141414] shrink-0';
         });
         renderAll();
       });
@@ -1313,8 +1313,8 @@
     document.getElementById('favOnlyBtn').addEventListener('click', (e) => {
       state.favOnly = !state.favOnly;
       e.currentTarget.className = state.favOnly
-        ? 'px-3.5 py-1.5 rounded-full text-xs font-black bg-[#FF5449] text-white border-[1.5px] border-[#141414] shrink-0 inline-flex items-center gap-1'
-        : 'px-3.5 py-1.5 rounded-full text-xs font-bold bg-white text-[#141414] border-[1.5px] border-[#141414]/35 hover:border-[#141414] shrink-0 inline-flex items-center gap-1';
+        ? 'px-4 py-2 rounded-full text-sm font-black bg-[#FF5449] text-white border-[1.5px] border-[#141414] shrink-0 inline-flex items-center gap-1'
+        : 'px-4 py-2 rounded-full text-sm font-bold bg-white text-[#141414] border-[1.5px] border-[#141414]/35 hover:border-[#141414] shrink-0 inline-flex items-center gap-1';
       renderAll();
     });
 
@@ -1536,8 +1536,8 @@
     document.getElementById('curatedOnlyBtn').addEventListener('click', (e) => {
       state.curatedOnly = !state.curatedOnly;
       e.currentTarget.className = state.curatedOnly
-        ? 'px-3.5 py-1.5 rounded-full text-xs font-black bg-[#C8F526] text-[#141414] border-[1.5px] border-[#141414] shrink-0 inline-flex items-center gap-1'
-        : 'px-3.5 py-1.5 rounded-full text-xs font-bold bg-white text-[#141414] border-[1.5px] border-[#141414]/35 hover:border-[#141414] shrink-0 inline-flex items-center gap-1';
+        ? 'px-4 py-2 rounded-full text-sm font-black bg-[#C8F526] text-[#141414] border-[1.5px] border-[#141414] shrink-0 inline-flex items-center gap-1'
+        : 'px-4 py-2 rounded-full text-sm font-bold bg-white text-[#141414] border-[1.5px] border-[#141414]/35 hover:border-[#141414] shrink-0 inline-flex items-center gap-1';
       renderAll();
     });
 
