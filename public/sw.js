@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gilmat-v51';
+const CACHE_NAME = 'gilmat-v52';
 const PRECACHE_URLS = [
   '/',
   '/index.html',
