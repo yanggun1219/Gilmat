@@ -3,33 +3,97 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#FAF8F3">
+  <meta name="theme-color" id="metaThemeColor" content="#FAF8F3">
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" href="/favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-  <title>길맛 — 길에서 찾는 맛있는 즐거움</title>
+  <title>길맛 — 영구 무료 경로 맛집 탐색</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700;800;900&family=Noto+Sans+KR:wght@500;700;900&display=swap" rel="stylesheet">
   <style>
-    body {
-      font-family: 'Inter', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
-      background-color: #FAF8F3;
-      color: #141414;
+    :root {
+      --bg-page: #FAF8F3;
+      --bg-card: #FFFFFF;
+      --bg-soft: #F3EFE6;
+      --bg-input: #FAF8F3;
+      --text-main: #141414;
+      --text-muted: #57534E;
+      --text-placeholder: #A8A29E;
+      --border-main: #141414;
+      --border-soft: rgba(20, 20, 20, 0.22);
+      --shadow-ink: #141414;
+      --pill-active-bg: #141414;
+      --pill-active-fg: #C8F526;
+      --lime: #C8F526;
+      --coral: #FF5449;
       color-scheme: light;
     }
+    html.theme-dark {
+      --bg-page: #181A1F;
+      --bg-card: #22252C;
+      --bg-soft: #2A2E37;
+      --bg-input: #1A1D23;
+      --text-main: #F3F1EC;
+      --text-muted: #A1A6B2;
+      --text-placeholder: #6B7280;
+      --border-main: #3E434E;
+      --border-soft: rgba(243, 241, 236, 0.16);
+      --shadow-ink: #0B0C0F;
+      --pill-active-bg: #C8F526;
+      --pill-active-fg: #141414;
+      --lime: #C8F526;
+      --coral: #FF5C52;
+      color-scheme: dark;
+    }
+
+    body {
+      font-family: 'Inter', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-main);
+    }
+    .gm-page { background-color: var(--bg-page); color: var(--text-main); }
+    .gm-card { background-color: var(--bg-card); border: 2px solid var(--border-main); color: var(--text-main); }
+    .gm-card-shadow { box-shadow: 3px 3px 0 var(--shadow-ink); }
+    .gm-soft { background-color: var(--bg-soft); color: var(--text-main); }
+    .gm-input-box { background-color: var(--bg-input); border: 1.5px solid var(--border-soft); color: var(--text-main); }
+    .gm-input-box.active { border: 2px solid var(--border-main); }
+    html.theme-dark .gm-input-box.active { border-color: var(--lime); }
+    .gm-input { background: transparent; color: var(--text-main); }
+    .gm-input::placeholder { color: var(--text-placeholder); }
+    .gm-muted { color: var(--text-muted); }
+    .gm-border-b { border-bottom: 2px solid var(--border-main); }
+    .gm-border-t { border-top: 1.5px solid var(--border-soft); }
+    .gm-pill {
+      background-color: var(--bg-card);
+      color: var(--text-main);
+      border: 1.5px solid var(--border-soft);
+      font-weight: 800;
+    }
+    .gm-pill.active {
+      background-color: var(--pill-active-bg);
+      color: var(--pill-active-fg);
+      border: 1.5px solid var(--border-main);
+      font-weight: 900;
+    }
+    .gm-cta {
+      background-color: var(--coral);
+      color: #FFFFFF;
+      border: 2px solid #141414;
+      box-shadow: 2px 2px 0 var(--shadow-ink);
+    }
+
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
     #map {
       width: 100%;
       height: 100%;
-      min-height: 340px;
-      background-color: #EFECE4;
+      min-height: 330px;
+      background-color: var(--bg-soft);
     }
-
     #map.kakao-dark-filter {
       filter: invert(92%) hue-rotate(180deg) brightness(95%) contrast(92%);
     }
@@ -42,9 +106,9 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      padding: 4px 11px;
+      padding: 4px 10px;
       border-radius: 9999px;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 900;
       color: #FFFFFF;
       border: 2px solid #141414;
@@ -60,9 +124,9 @@
       color: #141414 !important;
       border-color: #141414;
     }
-    .gm-pin-food { background: #FF5449; }
+    .gm-pin-curated { background: #FF5449; }
+    .gm-pin-food { background: #141414; }
     .gm-pin-cafe { background: #2563EB; }
-    .gm-pin-unrated { background: #57534E; }
     .gm-pin-trap { background: #991B1B; opacity: 0.85; }
 
     .gm-endpoint {
@@ -80,158 +144,158 @@
     }
   </style>
 </head>
-<body class="min-h-screen flex flex-col bg-[#FAF8F3] text-[#141414]">
+<body class="min-h-screen flex flex-col gm-page">
 
-  <!-- Top Navigation & Hero Search Card (3-Tier Hierarchy) -->
-  <header class="bg-[#FAF8F3] border-b-2 border-[#141414] relative lg:sticky lg:top-0 z-[1000]">
+  <!-- Top Navigation & Hero Search Card -->
+  <header class="gm-page gm-border-b relative lg:sticky lg:top-0 z-[1000]">
     <div class="max-w-5xl mx-auto px-3 sm:px-5 pt-3 pb-2.5 space-y-2.5">
 
       <!-- Tier 1: Slim Brand Bar -->
       <div class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-2">
           <img src="/icon-192.png" alt="길맛" class="w-9 h-9 rounded-xl border-2 border-[#141414] shrink-0">
-          <h1 class="text-2xl font-black text-[#141414] tracking-tighter leading-none">길맛</h1>
+          <h1 class="text-2xl font-black tracking-tighter leading-none">길맛</h1>
         </div>
         <div class="flex items-center gap-1.5">
-          <button id="openCuratedBtn" type="button"
-            class="bg-[#C8F526] hover:bg-[#B8E61E] text-[#141414] border-[1.5px] border-[#141414] text-sm font-black px-3 py-1.5 rounded-full flex items-center gap-1 transition">
-            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
-            <span>유명맛집 도감</span>
+          <button id="themeCycleBtn" type="button" title="화면 테마 (자동/데이/다크)"
+            class="gm-pill text-xs sm:text-sm px-2.5 py-1.5 rounded-full flex items-center gap-1 transition">
+            <i id="themeIcon" data-lucide="sun-moon" class="w-3.5 h-3.5"></i>
+            <span id="themeLabel">자동</span>
           </button>
-          <button id="openQuotaBtn" type="button" title="무료 쿼터 모니터"
-            class="bg-white hover:bg-[#F3EFE6] text-[#57534E] hover:text-[#141414] border border-[#141414]/25 text-sm font-bold px-3 py-1.5 rounded-full flex items-center gap-1 transition">
+          <button id="openCuratedBtn" type="button"
+            class="bg-[#C8F526] hover:bg-[#B8E61E] text-[#141414] border-[1.5px] border-[#141414] text-xs sm:text-sm font-black px-3 py-1.5 rounded-full flex items-center gap-1 transition">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+            <span>도감 <span id="curatedTotalBadge">1,121</span></span>
+          </button>
+          <button id="openQuotaBtn" type="button" title="무료 사용량"
+            class="gm-pill text-xs sm:text-sm px-2.5 py-1.5 rounded-full flex items-center gap-1 transition">
             <i data-lucide="gauge" class="w-3.5 h-3.5"></i>
-            <span>쿼터</span>
           </button>
         </div>
       </div>
 
       <!-- Tier 2: Hero Search Card -->
-      <div class="bg-white border-2 border-[#141414] rounded-2xl p-3 space-y-2.5 shadow-[3px_3px_0_#141414]">
-        <!-- Sub-row: Travel Mode (Left) + Departure Time (Right) -->
+      <div class="gm-card gm-card-shadow rounded-2xl p-3 space-y-2.5">
+        <!-- Row A: Travel Mode + Departure Time -->
         <div class="flex items-center justify-between gap-2">
-          <div class="flex items-center bg-[#FAF8F3] p-0.5 rounded-xl border border-[#141414]/25 text-sm">
+          <div class="flex items-center gm-soft p-0.5 rounded-xl border border-[#141414]/20 text-sm">
             <button type="button" data-travel="car" class="travel-btn px-3 py-1 rounded-lg font-black bg-[#141414] text-[#C8F526]">차량</button>
-            <button type="button" data-travel="walk" class="travel-btn px-3 py-1 rounded-lg font-bold text-[#57534E] hover:text-[#141414]">도보</button>
+            <button type="button" data-travel="walk" class="travel-btn px-3 py-1 rounded-lg font-bold gm-muted">도보</button>
           </div>
-          <div class="flex items-center gap-1 bg-[#FAF8F3] rounded-xl px-3 py-1.5 border border-[#141414]/20 text-sm">
-            <select id="daySelect" aria-label="출발 요일" class="bg-transparent font-extrabold text-[#141414] outline-none cursor-pointer">
-              <option value="0">일</option>
-              <option value="1">월</option>
-              <option value="2">화</option>
-              <option value="3">수</option>
-              <option value="4">목</option>
-              <option value="5">금</option>
-              <option value="6">토</option>
+          <div class="flex items-center gap-1.5 gm-soft rounded-xl px-3 py-1.5 text-sm font-extrabold">
+            <select id="daySelect" aria-label="출발 요일" class="bg-transparent outline-none cursor-pointer">
+              <option value="0">일</option><option value="1">월</option><option value="2">화</option>
+              <option value="3">수</option><option value="4">목</option><option value="5">금</option><option value="6">토</option>
             </select>
-            <span class="text-[#141414]/25">|</span>
-            <input id="departTimeInput" type="time" aria-label="출발 시각"
-              class="bg-transparent font-extrabold text-[#141414] outline-none cursor-pointer">
+            <span class="opacity-30">|</span>
+            <input id="departTimeInput" type="time" aria-label="출발 시각" class="bg-transparent outline-none cursor-pointer">
           </div>
         </div>
 
-        <!-- Core Inputs: A & B + Swap Button -->
+        <!-- Row B: Big A/B Inputs + Swap -->
         <div class="flex items-stretch gap-2">
           <div class="flex-1 space-y-1.5 min-w-0">
-            <div id="originWrap" class="flex items-center bg-[#FAF8F3] rounded-xl px-3.5 py-3 border-2 border-[#141414] transition">
+            <div id="originWrap" class="gm-input-box active flex items-center rounded-xl px-3.5 py-3 transition">
               <span class="w-6 h-6 rounded-full bg-[#FF5449] text-white text-xs font-black flex items-center justify-center mr-2.5 shrink-0">A</span>
-              <input id="originInput" type="text" value="" placeholder="출발지 입력 (예: 광화문, 성북구)" aria-label="출발지"
-                class="bg-transparent text-lg font-extrabold text-[#141414] placeholder-[#A8A29E] w-full outline-none min-w-0">
-              <button id="gpsOriginBtn" type="button" title="현위치로 출발지 입력"
-                class="ml-1.5 text-[#57534E] hover:text-[#FF5449] p-1 rounded-lg shrink-0">
-                <i data-lucide="locate-fixed" class="w-4 h-4"></i>
+              <input id="originInput" type="text" value="" placeholder="출발지 입력 (예: 광화문)" aria-label="출발지"
+                class="gm-input text-lg font-extrabold w-full outline-none min-w-0">
+              <button id="gpsOriginBtn" type="button" title="현위치로 출발지 입력" class="ml-1.5 gm-muted hover:text-[#FF5449] p-1 rounded-lg shrink-0">
+                <i data-lucide="locate-fixed" class="w-5 h-5"></i>
               </button>
             </div>
-            <div id="destWrap" class="flex items-center bg-[#FAF8F3] rounded-xl px-3.5 py-3 border border-[#141414]/25 transition">
+            <div id="destWrap" class="gm-input-box flex items-center rounded-xl px-3.5 py-3 transition">
               <span class="w-6 h-6 rounded-full bg-[#C8F526] text-[#141414] border border-[#141414] text-xs font-black flex items-center justify-center mr-2.5 shrink-0">B</span>
-              <input id="destInput" type="text" value="" placeholder="도착지 입력 (예: 강남역, 해운대)" aria-label="도착지"
-                class="bg-transparent text-lg font-extrabold text-[#141414] placeholder-[#A8A29E] w-full outline-none min-w-0">
-              <button id="gpsDestBtn" type="button" title="현위치로 도착지 입력"
-                class="ml-1.5 text-[#57534E] hover:text-[#141414] p-1 rounded-lg shrink-0">
-                <i data-lucide="locate-fixed" class="w-4 h-4"></i>
+              <input id="destInput" type="text" value="" placeholder="도착지 입력 (예: 강남역, 강릉)" aria-label="도착지"
+                class="gm-input text-lg font-extrabold w-full outline-none min-w-0">
+              <button id="gpsDestBtn" type="button" title="현위치로 도착지 입력" class="ml-1.5 gm-muted hover:text-[#FF5449] p-1 rounded-lg shrink-0">
+                <i data-lucide="locate-fixed" class="w-5 h-5"></i>
               </button>
             </div>
           </div>
           <button id="swapRouteBtn" type="button" title="출발지·도착지 바꾸기"
-            class="w-11 rounded-xl bg-[#FAF8F3] hover:bg-[#C8F526] border border-[#141414]/25 hover:border-[#141414] text-[#141414] flex items-center justify-center shrink-0 transition">
-            <i data-lucide="arrow-up-down" class="w-4 h-4"></i>
+            class="w-11 rounded-xl gm-soft border border-[#141414]/25 flex items-center justify-center shrink-0 transition">
+            <i data-lucide="arrow-up-down" class="w-5 h-5"></i>
           </button>
         </div>
 
-        <!-- Quick-Fill Chips (Lightweight, Secondary Weight) -->
-        <div class="flex items-center gap-2 overflow-x-auto no-scrollbar text-sm pt-0.5">
+        <!-- Row C: Arrival Time Focus Option -->
+        <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar text-xs sm:text-sm">
+          <span class="font-black gm-muted shrink-0 mr-0.5">도착 구간:</span>
+          <button type="button" data-tarm="0" class="target-min-btn gm-pill active px-3 py-1 rounded-full shrink-0">전체</button>
+          <button type="button" data-tarm="30" class="target-min-btn gm-pill px-3 py-1 rounded-full shrink-0">+30분쯤</button>
+          <button type="button" data-tarm="60" class="target-min-btn gm-pill px-3 py-1 rounded-full shrink-0">+1시간쯤</button>
+          <button type="button" data-tarm="90" class="target-min-btn gm-pill px-3 py-1 rounded-full shrink-0">+1시간30분</button>
+          <button type="button" data-tarm="120" class="target-min-btn gm-pill px-3 py-1 rounded-full shrink-0">+2시간쯤</button>
+        </div>
+
+        <!-- Row D: Quick-Fill Chips -->
+        <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar text-sm">
           <span id="targetFieldBadge" class="text-xs font-black text-[#FF5449] shrink-0 mr-0.5">A에 입력:</span>
-          <button id="quickGpsChip" type="button" class="px-2.5 py-1 rounded-full bg-[#141414] text-[#C8F526] font-extrabold shrink-0 inline-flex items-center gap-1">
-            <i data-lucide="locate-fixed" class="w-3 h-3"></i>
+          <button id="quickGpsChip" type="button" class="px-3 py-1 rounded-full bg-[#141414] text-[#C8F526] font-black shrink-0 inline-flex items-center gap-1">
+            <i data-lucide="locate-fixed" class="w-3.5 h-3.5"></i>
             <span>현위치</span>
           </button>
           <div id="savedAddrChips" class="flex items-center gap-1.5"></div>
-          <button id="openAddrModalBtn" type="button" class="px-2.5 py-1 rounded-full bg-[#FAF8F3] hover:bg-[#EFECE4] text-[#57534E] font-bold shrink-0 inline-flex items-center gap-1">
-            <i data-lucide="plus" class="w-3 h-3"></i>
+          <button id="openAddrModalBtn" type="button" class="gm-pill px-3 py-1 rounded-full shrink-0 inline-flex items-center gap-1">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
             <span>관리</span>
           </button>
         </div>
 
         <!-- Primary Hero CTA -->
         <button id="scanRouteBtn" type="button"
-          class="w-full py-3.5 rounded-xl bg-[#FF5449] hover:bg-[#F04338] active:translate-y-[1px] disabled:opacity-60 text-white border-2 border-[#141414] shadow-[2px_2px_0_#141414] text-lg font-black flex items-center justify-center gap-2 transition tracking-tight">
-          <i data-lucide="radar" class="w-4 h-4"></i>
+          class="gm-cta w-full py-3.5 rounded-xl active:translate-y-[1px] disabled:opacity-60 text-lg font-black flex items-center justify-center gap-2 transition tracking-tight">
+          <i data-lucide="radar" class="w-5 h-5"></i>
           <span id="scanBtnLabel">경로 맛집 탐색</span>
         </button>
       </div>
     </div>
 
-    <!-- Tier 3: Subtle Status Strip -->
-    <div class="bg-[#F3EFE6] border-t border-[#141414]/15 px-3 sm:px-5 py-1.5 flex items-center justify-between gap-2 text-xs text-[#57534E]">
+    <!-- Tier 3: Minimal Status Strip -->
+    <div class="gm-soft gm-border-t px-3 sm:px-5 py-1.5 flex items-center justify-between gap-2 text-xs gm-muted">
       <div class="flex items-center gap-2 min-w-0">
-        <span id="statusDot" class="w-2 h-2 rounded-full bg-[#141414]/40 shrink-0"></span>
-        <span id="coverageText" class="font-bold text-[#44403C] truncate">출발지(A)와 도착지(B)를 입력해 주세요.</span>
-        <span id="pipelineStats" class="hidden sm:inline font-semibold text-[#78716C] shrink-0"></span>
+        <span id="statusDot" class="w-2.5 h-2.5 rounded-full bg-[#A8A29E] shrink-0"></span>
+        <span id="coverageText" class="font-bold truncate">출발지(A)와 도착지(B)를 입력해 주세요.</span>
+        <span id="pipelineStats" class="hidden sm:inline font-semibold shrink-0"></span>
       </div>
-      <div class="flex items-center gap-2.5 shrink-0">
-        <label class="inline-flex items-center gap-1 cursor-pointer select-none font-bold text-[#57534E]">
-          <input id="showIcLayerChk" type="checkbox" checked class="rounded accent-[#141414]">
-          <span>반경</span>
-        </label>
-        <button id="exportJsonBtn" type="button" class="text-[#78716C] hover:text-[#141414] font-bold inline-flex items-center gap-0.5">
-          <i data-lucide="download" class="w-3 h-3"></i>
-          <span>JSON</span>
-        </button>
-      </div>
+      <label class="inline-flex items-center gap-1.5 cursor-pointer select-none font-bold shrink-0">
+        <input id="showIcLayerChk" type="checkbox" checked class="rounded accent-[#FF5449]">
+        <span>탐색 반경</span>
+      </label>
     </div>
   </header>
 
   <!-- Main Workspace -->
-  <div class="flex-1 w-full bg-[#FAF8F3]">
-    <main class="flex flex-col lg:flex-row lg:h-[calc(100vh-146px)]">
+  <div class="flex-1 w-full gm-page">
+    <main class="flex flex-col lg:flex-row lg:h-[calc(100vh-195px)]">
 
       <!-- Left: Isolated Kakao Map Pane -->
-      <section class="map-pane relative z-0 isolate overflow-hidden w-full lg:w-[56%] h-[340px] lg:h-full border-b-2 lg:border-b-0 lg:border-r-2 border-[#141414] shrink-0">
+      <section class="map-pane relative z-0 isolate overflow-hidden w-full lg:w-[55%] h-[330px] lg:h-full border-b-2 lg:border-b-0 lg:border-r-2 border-[var(--border-main)] shrink-0">
         <div id="map"></div>
 
-        <div id="mapKeyNotice" class="hidden absolute inset-0 z-[500] bg-[#FAF8F3]/95 flex items-center justify-center p-5 text-center">
-          <div class="max-w-sm space-y-2.5 bg-white border-2 border-[#141414] rounded-2xl p-5 shadow-[4px_4px_0_#141414]">
+        <div id="mapKeyNotice" class="hidden absolute inset-0 z-[500] gm-page flex items-center justify-center p-5 text-center">
+          <div class="max-w-sm space-y-2.5 gm-card gm-card-shadow rounded-2xl p-5">
             <div class="text-[#FF5449] font-black text-base">카카오맵 JavaScript 키 연결 필요</div>
-            <p class="text-xs font-medium text-[#44403C] leading-relaxed">
+            <p class="text-xs font-medium gm-muted leading-relaxed">
               카카오디벨로퍼스 <strong>JavaScript SDK 도메인</strong>에 현재 주소를 등록하고, Cloudflare에 <code>KAKAO_JS_KEY</code>를 추가해 주세요.
             </p>
           </div>
         </div>
 
-        <div class="absolute bottom-3 left-3 z-[400] bg-white border-2 border-[#141414] rounded-xl px-2.5 py-1.5 shadow-[2px_2px_0_#141414] flex flex-wrap items-center gap-2.5 text-xs font-black text-[#141414]">
-          <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-[#FF5449] border border-[#141414]"></span>음식점</span>
-          <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-[#2563EB] border border-[#141414]"></span>카페</span>
-          <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-[#57534E] border border-[#141414]"></span>미확인</span>
+        <div class="absolute bottom-3 left-3 z-[400] gm-card rounded-xl px-2.5 py-1.5 flex items-center gap-2.5 text-xs font-black">
+          <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-[#FF5449]"></span>유명맛집</span>
+          <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-[#141414] border border-white/40"></span>음식점</span>
+          <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-[#2563EB]"></span>카페</span>
         </div>
 
         <div class="absolute top-3 right-3 z-[400] flex items-center gap-1.5">
-          <div class="flex items-center bg-white border-2 border-[#141414] rounded-xl p-0.5 text-xs shadow-[2px_2px_0_#141414]">
-            <button type="button" data-mapmode="light" class="mapmode-btn px-2.5 py-1 rounded-lg font-black bg-[#141414] text-[#C8F526]">일반</button>
-            <button type="button" data-mapmode="dark" class="mapmode-btn px-2.5 py-1 rounded-lg font-bold text-[#57534E] hover:text-[#141414]">다크</button>
-            <button type="button" data-mapmode="sky" class="mapmode-btn px-2.5 py-1 rounded-lg font-bold text-[#57534E] hover:text-[#141414]">스카이뷰</button>
+          <div class="flex items-center gm-card rounded-xl p-0.5 text-xs">
+            <button type="button" data-mapmode="light" class="mapmode-btn px-2.5 py-1 rounded-lg font-black">일반</button>
+            <button type="button" data-mapmode="dark" class="mapmode-btn px-2.5 py-1 rounded-lg font-bold">다크</button>
+            <button type="button" data-mapmode="sky" class="mapmode-btn px-2.5 py-1 rounded-lg font-bold">위성</button>
           </div>
           <button id="fitRouteBtn" type="button" title="전체 경로 보기"
-            class="bg-white hover:bg-[#C8F526] text-[#141414] border-2 border-[#141414] rounded-xl px-2.5 py-1.5 text-xs font-black shadow-[2px_2px_0_#141414] flex items-center gap-1">
+            class="gm-card rounded-xl px-2.5 py-1.5 text-xs font-black flex items-center gap-1">
             <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
             <span>전체</span>
           </button>
@@ -239,106 +303,77 @@
       </section>
 
       <!-- Right: Filter & Results Pane -->
-      <section class="w-full lg:w-[44%] flex flex-col lg:h-full bg-[#FAF8F3]">
-        <div class="p-3 sm:p-4 border-b-2 border-[#141414] bg-[#FAF8F3] space-y-2.5 shrink-0">
-          <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
-            <button type="button" data-cat="all" class="cat-btn px-4 py-2 rounded-full text-sm font-black bg-[#141414] text-[#C8F526] border-[1.5px] border-[#141414] shrink-0">전체</button>
-            <button type="button" data-cat="food" class="cat-btn px-4 py-2 rounded-full text-sm font-bold bg-white text-[#141414] border-[1.5px] border-[#141414]/35 hover:border-[#141414] shrink-0">음식점</button>
-            <button type="button" data-cat="cafe" class="cat-btn px-4 py-2 rounded-full text-sm font-bold bg-white text-[#141414] border-[1.5px] border-[#141414]/35 hover:border-[#141414] shrink-0">카페</button>
-            <button type="button" id="curatedOnlyBtn" class="px-4 py-2 rounded-full text-sm font-bold bg-white text-[#141414] border-[1.5px] border-[#141414]/35 hover:border-[#141414] shrink-0 inline-flex items-center gap-1">
-              <i data-lucide="sparkles" class="w-3 h-3"></i>
+      <section class="w-full lg:w-[45%] flex flex-col lg:h-full gm-page">
+        <div class="p-3 sm:p-4 gm-border-b gm-page space-y-2.5 shrink-0">
+          <!-- Row 1: Curated / Fav / Sub-Cuisine 1-Tap Chips -->
+          <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5 text-sm">
+            <button type="button" data-sub="all" class="sub-btn gm-pill active px-3.5 py-1.5 rounded-full shrink-0">전체</button>
+            <button type="button" id="curatedOnlyBtn" class="gm-pill px-3.5 py-1.5 rounded-full shrink-0 inline-flex items-center gap-1">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
               <span>유명맛집 (<span id="curatedMatchCount">0</span>)</span>
             </button>
-            <button type="button" id="favOnlyBtn" class="px-4 py-2 rounded-full text-sm font-bold bg-white text-[#141414] border-[1.5px] border-[#141414]/35 hover:border-[#141414] shrink-0 inline-flex items-center gap-1">
-              <i data-lucide="heart" class="w-3 h-3"></i>
+            <button type="button" id="favOnlyBtn" class="gm-pill px-3.5 py-1.5 rounded-full shrink-0 inline-flex items-center gap-1">
+              <i data-lucide="heart" class="w-3.5 h-3.5"></i>
               <span>찜 (<span id="favCount">0</span>)</span>
             </button>
+            <button type="button" data-sub="한식" class="sub-btn gm-pill px-3.5 py-1.5 rounded-full shrink-0">한식</button>
+            <button type="button" data-sub="고기·구이" class="sub-btn gm-pill px-3.5 py-1.5 rounded-full shrink-0">고기·구이</button>
+            <button type="button" data-sub="국수·면" class="sub-btn gm-pill px-3.5 py-1.5 rounded-full shrink-0">국수·면</button>
+            <button type="button" data-sub="중식" class="sub-btn gm-pill px-3.5 py-1.5 rounded-full shrink-0">중식</button>
+            <button type="button" data-sub="일식" class="sub-btn gm-pill px-3.5 py-1.5 rounded-full shrink-0">일식</button>
+            <button type="button" data-sub="양식" class="sub-btn gm-pill px-3.5 py-1.5 rounded-full shrink-0">양식</button>
+            <button type="button" data-sub="분식" class="sub-btn gm-pill px-3.5 py-1.5 rounded-full shrink-0">분식</button>
+            <button type="button" data-sub="치킨" class="sub-btn gm-pill px-3.5 py-1.5 rounded-full shrink-0">치킨</button>
+            <button type="button" data-sub="카페" class="sub-btn gm-pill px-3.5 py-1.5 rounded-full shrink-0">카페</button>
           </div>
 
-          <!-- Unified Menu & Result Re-search Bar -->
+          <!-- Row 2: Big Menu Search + Sort -->
           <div class="flex items-center gap-1.5">
-            <div class="relative flex-1">
-              <i data-lucide="search" class="w-4 h-4 text-[#141414] absolute left-3 top-1/2 -translate-y-1/2"></i>
-              <input id="filterInput" type="text" placeholder="결과 내 재검색 · 메뉴 (예: 냉면, 국밥)"
-                class="w-full pl-9 pr-8 py-2.5 text-base sm:text-lg font-extrabold bg-white border-2 border-[#141414] text-[#141414] placeholder-[#A8A29E] rounded-xl outline-none">
-              <button id="clearFilterBtn" type="button" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-[#57534E] hover:text-[#141414]">
+            <div class="relative flex-1 gm-input-box active rounded-xl flex items-center">
+              <i data-lucide="search" class="w-4 h-4 gm-muted ml-3 shrink-0"></i>
+              <input id="filterInput" type="text" placeholder="메뉴·상호 재검색 (예: 냉면, 순대국)"
+                class="gm-input w-full pl-2 pr-8 py-2.5 text-base sm:text-lg font-extrabold outline-none">
+              <button id="clearFilterBtn" type="button" class="hidden absolute right-2.5 gm-muted">
                 <i data-lucide="x" class="w-4 h-4"></i>
               </button>
             </div>
             <button id="menuRouteSearchBtn" type="button" title="입력한 메뉴로 경로 전체 실시간 재탐색"
-              class="px-3.5 py-2.5 text-sm font-black bg-[#C8F526] hover:bg-[#B8E61E] text-[#141414] border-[1.5px] border-[#141414] rounded-xl shrink-0 transition">
+              class="px-3.5 py-2.5 text-sm font-black bg-[#C8F526] text-[#141414] border-2 border-[#141414] rounded-xl shrink-0">
               메뉴 탐색
             </button>
             <select id="sortSelect" aria-label="정렬 기준"
-              class="text-sm font-black bg-white border-[1.5px] border-[#141414] rounded-xl px-3 py-2.5 text-[#141414] outline-none cursor-pointer">
-              <option value="detour">우회순</option>
-              <option value="rating">평점순</option>
-              <option value="reviews">평가수순</option>
+              class="gm-card text-sm font-black rounded-xl px-2.5 py-2.5 outline-none cursor-pointer">
+              <option value="popular">인기도순</option>
+              <option value="curated">유명맛집순</option>
+              <option value="detour">우회 적은순</option>
               <option value="progress">진행순</option>
             </select>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
-            <div class="bg-white border-[1.5px] border-[#141414] rounded-xl px-3 py-2">
-              <div class="flex items-center justify-between text-sm mb-1.5">
-                <span class="font-extrabold text-[#141414]">최대 우회</span>
-                <span id="detourValLabel" class="font-black text-[#FF5449]">+15분 이내</span>
-              </div>
+          <!-- Row 3: Detour Slider + IC Exclude + Count -->
+          <div class="flex flex-wrap items-center justify-between gap-2 pt-0.5 text-sm">
+            <div class="flex items-center gap-2 flex-1 min-w-[190px]">
+              <span class="font-extrabold shrink-0">우회</span>
               <input id="detourSlider" type="range" min="3" max="30" step="1" value="15"
-                class="w-full accent-[#141414] h-1.5 bg-[#E7E5E4] rounded-lg cursor-pointer">
+                class="flex-1 accent-[#FF5449] h-1.5 rounded-lg cursor-pointer">
+              <span id="detourValLabel" class="font-black text-[#FF5449] shrink-0">+15분</span>
             </div>
-
-            <div class="bg-white border-[1.5px] border-[#141414] rounded-xl px-3 py-2 flex flex-col justify-between">
-              <div class="flex items-center justify-between gap-1 text-xs sm:text-sm">
-                <span class="font-extrabold text-[#141414]">평점</span>
-                <div class="flex items-center gap-1">
-                  <button type="button" data-rating="0" class="rating-btn px-2 py-0.5 rounded-md font-black bg-[#141414] text-[#C8F526] border border-[#141414]">전체</button>
-                  <button type="button" data-rating="4.3" class="rating-btn px-2 py-0.5 rounded-md font-bold bg-[#FAF8F3] border border-[#141414]/30 text-[#141414]">4.3+</button>
-                  <button type="button" data-rating="4.5" class="rating-btn px-2 py-0.5 rounded-md font-bold bg-[#FAF8F3] border border-[#141414]/30 text-[#141414]">4.5+</button>
-                  <button type="button" data-rating="4.8" class="rating-btn px-2 py-0.5 rounded-md font-bold bg-[#FAF8F3] border border-[#141414]/30 text-[#141414]">4.8+</button>
-                </div>
-              </div>
-              <div class="flex items-center justify-between gap-1 text-xs sm:text-sm mt-2">
-                <span class="font-extrabold text-[#141414]">리뷰</span>
-                <div class="flex items-center gap-1">
-                  <button type="button" data-reviews="0" class="review-btn px-2 py-0.5 rounded-md font-black bg-[#141414] text-[#C8F526] border border-[#141414]">전체</button>
-                  <button type="button" data-reviews="50" class="review-btn px-2 py-0.5 rounded-md font-bold bg-[#FAF8F3] border border-[#141414]/30 text-[#141414]">50+</button>
-                  <button type="button" data-reviews="100" class="review-btn px-2 py-0.5 rounded-md font-bold bg-[#FAF8F3] border border-[#141414]/30 text-[#141414]">100+</button>
-                  <button type="button" data-reviews="200" class="review-btn px-2 py-0.5 rounded-md font-bold bg-[#FAF8F3] border border-[#141414]/30 text-[#141414]">200+</button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-[#141414] pt-1">
-            <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
-              <input id="openAtEtaChk" type="checkbox" class="rounded accent-[#141414]">
-              <span class="font-bold">도착 시 영업 중</span>
-            </label>
-            <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
-              <input id="includeUnratedChk" type="checkbox" checked class="rounded accent-[#141414]">
-              <span class="font-bold">미확인 포함</span>
-            </label>
-            <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
-              <input id="excludeIcTrapChk" type="checkbox" checked class="rounded accent-[#141414]">
-              <span class="font-bold">IC 제외</span>
-            </label>
-            <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
-              <input id="enrichRatingsChk" type="checkbox" checked class="rounded accent-[#141414]">
-              <span class="font-bold">Google 평점</span>
+            <label class="inline-flex items-center gap-1.5 cursor-pointer select-none font-bold">
+              <input id="excludeIcTrapChk" type="checkbox" checked class="rounded accent-[#FF5449]">
+              <span>IC 제외</span>
             </label>
           </div>
 
-          <div class="flex items-center justify-between pt-1.5 border-t border-[#141414]/15 text-xs">
-            <span id="resultCountLabel" class="text-base font-black text-[#141414]">탐색 대기 중</span>
-            <button id="resetFiltersBtn" type="button" class="text-sm text-[#57534E] hover:text-[#FF5449] font-extrabold">필터 초기화</button>
+          <div class="flex items-center justify-between pt-1.5 gm-border-t text-sm">
+            <span id="resultCountLabel" class="text-base font-black">탐색 대기 중</span>
+            <button id="resetFiltersBtn" type="button" class="gm-muted hover:text-[#FF5449] font-extrabold">필터 초기화</button>
           </div>
         </div>
 
-        <div id="placesList" class="flex-1 overflow-y-auto p-3 space-y-2.5 bg-[#FAF8F3]">
-          <div class="text-center py-12 px-5 bg-white border-2 border-[#141414] rounded-2xl space-y-2">
-            <p class="text-lg font-black text-[#141414] tracking-tight">어디로 가시나요?</p>
-            <p class="text-xs font-medium text-[#57534E] leading-relaxed">위에서 <strong class="text-[#141414]">현위치</strong>나 <strong class="text-[#141414]">집·회사</strong>를 눌러 출발지(A)와 도착지(B)를 채워 보세요.</p>
+        <div id="placesList" class="flex-1 overflow-y-auto p-3 space-y-2.5 gm-page">
+          <div class="text-center py-12 px-5 gm-card rounded-2xl space-y-2">
+            <p class="text-xl font-black tracking-tight">어디로 가시나요?</p>
+            <p class="text-sm font-medium gm-muted leading-relaxed">출발지(A)·도착지(B)를 넣고 탐색하면 카카오 인기도순과 <strong>1,121곳 검증 맛집</strong>을 영구 무료로 찾아드려요.</p>
           </div>
         </div>
       </section>
@@ -346,42 +381,42 @@
   </div>
 
   <!-- Saved Addresses Manager Modal -->
-  <div id="addrModal" class="hidden fixed inset-0 z-[1100] bg-black/50 backdrop-blur-[1px] flex items-center justify-center p-3 overscroll-none touch-none">
-    <div class="bg-[#FAF8F3] border-2 border-[#141414] shadow-[4px_4px_0_#141414] w-full max-w-md max-h-[88vh] rounded-2xl flex flex-col overflow-hidden">
-      <div class="p-4 border-b-2 border-[#141414] bg-white flex items-center justify-between">
+  <div id="addrModal" class="hidden fixed inset-0 z-[1100] bg-black/55 backdrop-blur-[1px] flex items-center justify-center p-3 overscroll-none touch-none">
+    <div class="gm-page border-2 border-[var(--border-main)] gm-card-shadow w-full max-w-md max-h-[88vh] rounded-2xl flex flex-col overflow-hidden">
+      <div class="p-4 gm-border-b gm-card border-0 flex items-center justify-between">
         <div>
-          <h2 class="text-lg font-black text-[#141414]">자주 가는 주소 관리</h2>
-          <p class="text-xs font-medium text-[#57534E]">집·회사·즐겨찾기를 저장해 한 번에 입력하세요.</p>
+          <h2 class="text-lg font-black">자주 가는 주소 관리</h2>
+          <p class="text-xs font-medium gm-muted">집·회사·즐겨찾기를 저장해 한 번에 입력하세요.</p>
         </div>
-        <button id="closeAddrModalBtn" type="button" class="p-1.5 rounded-xl border border-[#141414]/20 hover:bg-[#FAF8F3] text-[#141414]">
+        <button id="closeAddrModalBtn" type="button" class="p-1.5 rounded-xl gm-soft">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
       <div class="p-4 overflow-y-auto space-y-4 text-sm overscroll-contain touch-pan-y">
         <div class="space-y-2.5">
           <div>
-            <label class="block font-black text-[#141414] mb-1" for="homeAddrInput">집 주소</label>
+            <label class="block font-black mb-1" for="homeAddrInput">집 주소</label>
             <input id="homeAddrInput" type="text" placeholder="예: 서울 성북구 오패산로 46"
-              class="w-full px-3.5 py-3 bg-white border-2 border-[#141414] rounded-xl text-base sm:text-lg font-extrabold text-[#141414] outline-none">
+              class="gm-input-box active w-full px-3.5 py-3 rounded-xl text-base sm:text-lg font-extrabold outline-none">
           </div>
           <div>
-            <label class="block font-black text-[#141414] mb-1" for="workAddrInput">회사 주소</label>
+            <label class="block font-black mb-1" for="workAddrInput">회사 주소</label>
             <input id="workAddrInput" type="text" placeholder="예: 서울 강남구 테헤란로 152"
-              class="w-full px-3.5 py-3 bg-white border-2 border-[#141414] rounded-xl text-base sm:text-lg font-extrabold text-[#141414] outline-none">
+              class="gm-input-box active w-full px-3.5 py-3 rounded-xl text-base sm:text-lg font-extrabold outline-none">
           </div>
-          <button id="saveHomeWorkBtn" type="button" class="w-full py-2.5 rounded-xl bg-[#141414] text-[#C8F526] border-2 border-[#141414] font-black text-sm">
+          <button id="saveHomeWorkBtn" type="button" class="w-full py-3 rounded-xl bg-[#141414] text-[#C8F526] border-2 border-[#141414] font-black text-base">
             집·회사 주소 저장
           </button>
         </div>
 
-        <div class="border-t-2 border-[#141414]/15 pt-3 space-y-2">
-          <div class="font-black text-[#141414]">즐겨찾기 주소 추가</div>
+        <div class="gm-border-t pt-3 space-y-2">
+          <div class="font-black">즐겨찾기 주소 추가</div>
           <div class="flex gap-1.5">
             <input id="newFavLabelInput" type="text" placeholder="별칭"
-              class="w-28 px-3 py-2.5 bg-white border-2 border-[#141414] rounded-xl text-base font-extrabold text-[#141414] outline-none">
+              class="gm-input-box active w-28 px-3 py-2.5 rounded-xl text-base font-extrabold outline-none">
             <input id="newFavAddrInput" type="text" placeholder="주소 또는 장소명"
-              class="flex-1 px-3 py-2.5 bg-white border-2 border-[#141414] rounded-xl text-base font-extrabold text-[#141414] outline-none">
-            <button id="addFavAddrBtn" type="button" class="px-3 py-2 rounded-xl bg-[#C8F526] text-[#141414] border-[1.5px] border-[#141414] font-black shrink-0">추가</button>
+              class="gm-input-box active flex-1 px-3 py-2.5 rounded-xl text-base font-extrabold outline-none">
+            <button id="addFavAddrBtn" type="button" class="px-3.5 py-2.5 rounded-xl bg-[#C8F526] text-[#141414] border-[1.5px] border-[#141414] font-black shrink-0">추가</button>
           </div>
           <div id="favAddrList" class="space-y-1.5 pt-1"></div>
         </div>
@@ -389,104 +424,99 @@
     </div>
   </div>
 
-  <!-- Curated Directory Modal -->
-  <div id="curatedModal" class="hidden fixed inset-0 z-[1100] bg-black/50 backdrop-blur-[1px] flex items-center justify-center p-3 overscroll-none touch-none">
-    <div class="bg-[#FAF8F3] border-2 border-[#141414] shadow-[4px_4px_0_#141414] w-full max-w-lg max-h-[88vh] rounded-2xl flex flex-col overflow-hidden">
-      <div class="p-4 border-b-2 border-[#141414] bg-white flex items-center justify-between">
+  <!-- Curated Directory Modal (1,121 Verified Restaurants) -->
+  <div id="curatedModal" class="hidden fixed inset-0 z-[1100] bg-black/55 backdrop-blur-[1px] flex items-center justify-center p-3 overscroll-none touch-none">
+    <div class="gm-page border-2 border-[var(--border-main)] gm-card-shadow w-full max-w-lg max-h-[88vh] rounded-2xl flex flex-col overflow-hidden">
+      <div class="p-4 gm-border-b gm-card border-0 flex items-center justify-between">
         <div>
-          <h2 class="text-lg font-black text-[#141414]">유명맛집 도감</h2>
-          <p id="curatedMetaText" class="text-xs font-bold text-[#57534E]">먹을텐데 · 최자로드 · 또간집</p>
+          <h2 class="text-lg font-black">검증 맛집 도감</h2>
+          <p id="curatedMetaText" class="text-xs font-bold gm-muted">백년가게 · 미쉐린 · 또간집 · 먹을텐데 · 최자로드 · 백반기행 · 블루리본</p>
         </div>
-        <button id="closeCuratedBtn" type="button" class="p-1.5 rounded-xl border border-[#141414]/20 hover:bg-[#FAF8F3] text-[#141414]">
+        <button id="closeCuratedBtn" type="button" class="p-1.5 rounded-xl gm-soft">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
-      <div class="p-3 border-b-2 border-[#141414]/15 bg-[#FAF8F3] flex flex-wrap items-center gap-1.5 text-xs">
-        <button type="button" data-csrc="all" class="csrc-btn px-3 py-1 rounded-full font-black bg-[#141414] text-[#C8F526] border-[1.5px] border-[#141414]">전체</button>
-        <button type="button" data-csrc="먹을텐데" class="csrc-btn px-3 py-1 rounded-full font-bold bg-white text-[#141414] border-[1.5px] border-[#141414]/35">먹을텐데</button>
-        <button type="button" data-csrc="최자로드" class="csrc-btn px-3 py-1 rounded-full font-bold bg-white text-[#141414] border-[1.5px] border-[#141414]/35">최자로드</button>
-        <button type="button" data-csrc="또간집" class="csrc-btn px-3 py-1 rounded-full font-bold bg-white text-[#141414] border-[1.5px] border-[#141414]/35">또간집</button>
-        <input id="curatedSearchInput" type="text" placeholder="상호·지역·메뉴 검색"
-          class="w-full sm:flex-1 min-w-[160px] px-3.5 py-2.5 bg-white border-2 border-[#141414] rounded-xl text-base sm:text-lg font-extrabold text-[#141414] outline-none">
+      <div class="p-3 gm-border-b gm-page space-y-2 text-xs sm:text-sm">
+        <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+          <button type="button" data-csrc="all" class="csrc-btn gm-pill active px-3 py-1 rounded-full shrink-0">전체</button>
+          <button type="button" data-csrc="백년가게" class="csrc-btn gm-pill px-3 py-1 rounded-full shrink-0">백년가게</button>
+          <button type="button" data-csrc="미쉐린" class="csrc-btn gm-pill px-3 py-1 rounded-full shrink-0">미쉐린</button>
+          <button type="button" data-csrc="또간집" class="csrc-btn gm-pill px-3 py-1 rounded-full shrink-0">또간집</button>
+          <button type="button" data-csrc="먹을텐데" class="csrc-btn gm-pill px-3 py-1 rounded-full shrink-0">먹을텐데</button>
+          <button type="button" data-csrc="최자로드" class="csrc-btn gm-pill px-3 py-1 rounded-full shrink-0">최자로드</button>
+          <button type="button" data-csrc="백반기행" class="csrc-btn gm-pill px-3 py-1 rounded-full shrink-0">백반기행</button>
+          <button type="button" data-csrc="블루리본" class="csrc-btn gm-pill px-3 py-1 rounded-full shrink-0">블루리본</button>
+        </div>
+        <input id="curatedSearchInput" type="text" placeholder="상호·지역·메뉴 검색 (예: 평양냉면, 부산)"
+          class="gm-input-box active w-full px-3.5 py-2.5 rounded-xl text-base sm:text-lg font-extrabold outline-none">
       </div>
-      <div id="curatedDirList" class="p-3 overflow-y-auto flex-1 space-y-2 text-xs overscroll-contain touch-pan-y"></div>
+      <div id="curatedDirList" class="p-3 overflow-y-auto flex-1 space-y-2 text-sm overscroll-contain touch-pan-y"></div>
     </div>
   </div>
 
   <!-- Place Detail Drawer -->
-  <div id="detailModal" class="hidden fixed inset-0 z-[1100] bg-black/50 backdrop-blur-[1px] flex items-end sm:items-center justify-center sm:justify-end overscroll-none touch-none">
-    <div class="bg-[#FAF8F3] border-t-2 sm:border-t-0 sm:border-l-2 border-[#141414] w-full sm:w-[430px] max-h-[88vh] sm:h-full sm:max-h-full rounded-t-3xl sm:rounded-none flex flex-col overflow-hidden">
-      <div class="p-4 border-b-2 border-[#141414] bg-white flex items-start justify-between gap-3">
+  <div id="detailModal" class="hidden fixed inset-0 z-[1100] bg-black/55 backdrop-blur-[1px] flex items-end sm:items-center justify-center sm:justify-end overscroll-none touch-none">
+    <div class="gm-page border-t-2 sm:border-t-0 sm:border-l-2 border-[var(--border-main)] w-full sm:w-[430px] max-h-[88vh] sm:h-full sm:max-h-full rounded-t-3xl sm:rounded-none flex flex-col overflow-hidden">
+      <div class="p-4 gm-border-b gm-card border-0 flex items-start justify-between gap-3">
         <div>
-          <div class="flex items-center gap-1.5 mb-1.5">
-            <span id="detailCatBadge" class="text-[11px] font-black px-2.5 py-0.5 rounded-full"></span>
-            <span id="detailSourceBadge" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#FAF8F3] text-[#57534E] border border-[#141414]/25"></span>
+          <div class="flex items-center gap-1.5 flex-wrap mb-1.5">
+            <span id="detailCatBadge" class="text-xs font-black px-2.5 py-0.5 rounded-full"></span>
+            <span id="detailRankBadge" class="text-xs font-bold px-2.5 py-0.5 rounded-full gm-soft"></span>
           </div>
-          <h2 id="detailName" class="text-2xl font-black text-[#141414] leading-tight tracking-tight"></h2>
-          <p id="detailAddr" class="text-xs font-bold text-[#57534E] mt-1"></p>
+          <h2 id="detailName" class="text-2xl font-black leading-tight tracking-tight"></h2>
+          <p id="detailAddr" class="text-xs sm:text-sm font-bold gm-muted mt-1"></p>
         </div>
-        <button id="closeDetailBtn" type="button" class="p-1.5 rounded-xl border border-[#141414]/20 hover:bg-[#FAF8F3] text-[#141414]">
+        <button id="closeDetailBtn" type="button" class="p-1.5 rounded-xl gm-soft">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
       <div id="detailBody" class="p-4 overflow-y-auto flex-1 space-y-3.5 text-sm overscroll-contain touch-pan-y"></div>
-      <div class="p-3.5 border-t-2 border-[#141414] bg-white space-y-2">
-        <div class="text-[11px] font-black text-[#57534E]">지도 열기 · 원탭 길안내</div>
+      <div class="p-3.5 gm-border-t gm-card border-0 space-y-2">
+        <div class="text-xs font-black gm-muted">지도 열기 · 원탭 길안내</div>
         <div id="detailNavActions" class="grid grid-cols-4 gap-1.5"></div>
       </div>
     </div>
   </div>
 
-  <!-- Monthly Quota Monitor Modal -->
-  <div id="quotaModal" class="hidden fixed inset-0 z-[1100] bg-black/50 backdrop-blur-[1px] flex items-center justify-center p-3 overscroll-none touch-none">
-    <div class="bg-[#FAF8F3] border-2 border-[#141414] shadow-[4px_4px_0_#141414] w-full max-w-md rounded-2xl overflow-hidden">
-      <div class="p-4 border-b-2 border-[#141414] bg-white flex items-center justify-between">
+  <!-- Free Quota Monitor Modal -->
+  <div id="quotaModal" class="hidden fixed inset-0 z-[1100] bg-black/55 backdrop-blur-[1px] flex items-center justify-center p-3 overscroll-none touch-none">
+    <div class="gm-page border-2 border-[var(--border-main)] gm-card-shadow w-full max-w-md rounded-2xl overflow-hidden">
+      <div class="p-4 gm-border-b gm-card border-0 flex items-center justify-between">
         <div>
-          <h2 class="text-lg font-black text-[#141414]">월 0원 무료 쿼터</h2>
-          <p class="text-xs font-medium text-[#57534E]">API 키는 Cloudflare에 안전하게 보관됩니다.</p>
+          <h2 class="text-lg font-black">영구 월 0원 사용량</h2>
+          <p class="text-xs font-medium gm-muted">Google 유료 API 없이 카카오·TMAP 무료 한도만 사용해요.</p>
         </div>
-        <button id="closeQuotaBtn" type="button" class="p-1.5 rounded-xl border border-[#141414]/20 hover:bg-[#FAF8F3] text-[#141414]">
+        <button id="closeQuotaBtn" type="button" class="p-1.5 rounded-xl gm-soft">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
-      <div class="p-4 space-y-3 text-xs overscroll-contain touch-pan-y">
-        <div class="bg-white p-3.5 rounded-2xl border-2 border-[#141414] space-y-2.5">
-          <div>
-            <div class="flex justify-between mb-1">
-              <span class="font-extrabold text-[#141414]">Google Places (월 1,000건 무료)</span>
-              <span id="quotaGoogleText" class="font-mono font-black text-[#FF5449]">0 / 900건</span>
-            </div>
-            <div class="w-full h-2.5 bg-[#FAF8F3] border border-[#141414] rounded-full overflow-hidden">
-              <div id="quotaGoogleBar" class="h-full bg-[#FF5449] transition-all" style="width: 0%"></div>
-            </div>
-          </div>
-          <div>
-            <div class="flex justify-between mb-1">
-              <span class="font-extrabold text-[#141414]">카카오 로컬 (일 100,000건 무료)</span>
-              <span id="quotaKakaoText" class="font-mono font-black text-[#141414]">0건</span>
-            </div>
-            <div class="w-full h-2.5 bg-[#FAF8F3] border border-[#141414] rounded-full overflow-hidden">
-              <div id="quotaKakaoBar" class="h-full bg-[#C8F526] transition-all" style="width: 2%"></div>
-            </div>
-          </div>
-          <div class="flex justify-between pt-1 border-t border-[#141414]/10">
-            <span class="font-bold text-[#57534E]">차량 길찾기 (카카오)</span>
-            <span id="quotaDirText" class="font-mono font-black text-[#141414]">0건</span>
+      <div class="p-4 space-y-3 text-sm overscroll-contain touch-pan-y">
+        <div class="p-3 rounded-xl bg-[#C8F526] text-[#141414] border-2 border-[#141414] font-black text-center">
+          Google Places 미사용 · 영구 월 0원 모드
+        </div>
+        <div class="gm-card p-3.5 rounded-2xl space-y-2.5">
+          <div class="flex justify-between">
+            <span class="font-bold gm-muted">카카오 로컬 (일 100,000건 무료)</span>
+            <span id="quotaKakaoText" class="font-mono font-black">0건</span>
           </div>
           <div class="flex justify-between">
-            <span class="font-bold text-[#57534E]">도보 길찾기 (TMAP · 일 1,000건)</span>
-            <span id="quotaTmapText" class="font-mono font-black text-[#141414]">0건</span>
+            <span class="font-bold gm-muted">차량 길찾기 (카카오)</span>
+            <span id="quotaDirText" class="font-mono font-black">0건</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="font-bold gm-muted">도보 길찾기 (TMAP · 일 1,000건)</span>
+            <span id="quotaTmapText" class="font-mono font-black">0건</span>
           </div>
         </div>
         <div class="flex items-center justify-between pt-1">
-          <button id="resetQuotaBtn" type="button" class="text-[#57534E] hover:text-[#FF5449] font-extrabold">카운터 초기화</button>
-          <button id="doneQuotaBtn" type="button" class="px-4 py-2 bg-[#141414] text-[#C8F526] font-black rounded-xl border border-[#141414]">확인</button>
+          <button id="resetQuotaBtn" type="button" class="gm-muted hover:text-[#FF5449] font-extrabold text-xs">카운터 초기화</button>
+          <button id="doneQuotaBtn" type="button" class="px-5 py-2 bg-[#141414] text-[#C8F526] font-black rounded-xl border border-[#141414]">확인</button>
         </div>
       </div>
     </div>
   </div>
 
-  <div id="toast" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-[1200] bg-[#141414] text-[#C8F526] border-2 border-[#C8F526] text-xs font-black px-4 py-2.5 rounded-full shadow-xl"></div>
+  <div id="toast" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-[1200] bg-[#141414] text-[#C8F526] border-2 border-[#C8F526] text-sm font-black px-4 py-2.5 rounded-full shadow-xl"></div>
 
   <script>
     function safeGet(key, fallback) {
@@ -497,44 +527,41 @@
     }
 
     const now = new Date();
-    const currentMonthKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
-    const storedQuota = safeGet('gilmat_prod_quota', { month: currentMonthKey, googleEnterprise: 0, kakaoLocal: 0, kakaoDirections: 0, tmapWalk: 0 });
-    if (storedQuota.month !== currentMonthKey) {
-      storedQuota.month = currentMonthKey;
-      storedQuota.googleEnterprise = 0;
+    const monthKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+    const storedQuota = safeGet('gilmat_v5_quota', { month: monthKey, kakaoLocal: 0, kakaoDirections: 0, tmapPedestrian: 0 });
+    if (storedQuota.month !== monthKey) {
+      storedQuota.month = monthKey;
       storedQuota.kakaoLocal = 0;
       storedQuota.kakaoDirections = 0;
-      storedQuota.tmapWalk = 0;
+      storedQuota.tmapPedestrian = 0;
     }
 
     const state = {
       travelMode: 'car',
       activeField: 'origin',
       hasTmap: false,
+      themePref: safeGet('gilmat_theme_pref', 'auto'), // 'auto' | 'light' | 'dark'
+      mapMode: 'light',
+      manualMapMode: false,
+      targetMin: 0,
       route: null,
       samplingNodes: [],
       places: [],
-      category: 'all',
+      subCuisine: 'all',
       filterText: '',
       maxDetour: 15,
-      minRating: 0,
-      minReviews: 0,
-      openAtEta: false,
-      includeUnrated: true,
       excludeIcTrap: true,
-      enrichRatings: true,
       favOnly: false,
       curatedOnly: false,
       curatedList: [],
-      curatedFilterSrc: "all",
-      curatedSearchText: "",
-      sortBy: 'detour',
+      curatedFilterSrc: 'all',
+      curatedSearchText: '',
+      sortBy: 'popular',
       dayOfWeek: now.getDay(),
       departTime: String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0'),
       showIcLayer: true,
       selectedId: null,
       loading: false,
-      mapMode: 'light',
       favorites: safeGet('gilmat_prod_favs', []),
       savedAddrs: safeGet('gilmat_saved_addrs', { home: '', work: '', custom: [] }),
       quota: storedQuota
@@ -550,41 +577,106 @@
     let placeOverlays = [];
     let routeBounds = null;
 
+    // --- System Auto Day / Dark Theme Engine ---
+    const darkMedia = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+
+    function resolveIsDark() {
+      if (state.themePref === 'dark') return true;
+      if (state.themePref === 'light') return false;
+      return Boolean(darkMedia && darkMedia.matches);
+    }
+
+    function applyTheme() {
+      const isDark = resolveIsDark();
+      document.documentElement.classList.toggle('theme-dark', isDark);
+      const meta = document.getElementById('metaThemeColor');
+      if (meta) meta.setAttribute('content', isDark ? '#181A1F' : '#FAF8F3');
+
+      const labelEl = document.getElementById('themeLabel');
+      const iconEl = document.getElementById('themeIcon');
+      if (labelEl) {
+        labelEl.textContent = state.themePref === 'auto' ? '자동' : (state.themePref === 'dark' ? '다크' : '데이');
+      }
+      if (iconEl) {
+        iconEl.setAttribute('data-lucide', state.themePref === 'auto' ? 'sun-moon' : (state.themePref === 'dark' ? 'moon' : 'sun'));
+        if (window.lucide) lucide.createIcons();
+      }
+
+      if (!state.manualMapMode) {
+        setMapVisualMode(isDark ? 'dark' : 'light', false);
+      }
+    }
+
+    function setMapVisualMode(mode, isManual) {
+      state.mapMode = mode;
+      if (isManual) state.manualMapMode = true;
+      const mapEl = document.getElementById('map');
+      if (mode === 'dark') {
+        mapEl.classList.add('kakao-dark-filter');
+        if (kakaoMap) kakaoMap.setMapTypeId(kakao.maps.MapTypeId.ROADMAP);
+      } else if (mode === 'light') {
+        mapEl.classList.remove('kakao-dark-filter');
+        if (kakaoMap) kakaoMap.setMapTypeId(kakao.maps.MapTypeId.ROADMAP);
+      } else {
+        mapEl.classList.remove('kakao-dark-filter');
+        if (kakaoMap) kakaoMap.setMapTypeId(kakao.maps.MapTypeId.HYBRID);
+      }
+      document.querySelectorAll('.mapmode-btn').forEach((b) => {
+        const active = b.dataset.mapmode === mode;
+        b.className = active
+          ? 'mapmode-btn px-2.5 py-1 rounded-lg font-black bg-[#141414] text-[#C8F526]'
+          : 'mapmode-btn px-2.5 py-1 rounded-lg font-bold gm-muted';
+      });
+      if (state.route) renderRouteOnMap();
+    }
+
+    if (darkMedia && darkMedia.addEventListener) {
+      darkMedia.addEventListener('change', () => {
+        if (state.themePref === 'auto') applyTheme();
+      });
+    }
+
+    document.getElementById('themeCycleBtn').addEventListener('click', () => {
+      const order = ['auto', 'light', 'dark'];
+      const next = order[(order.indexOf(state.themePref) + 1) % order.length];
+      state.themePref = next;
+      state.manualMapMode = false;
+      safeSet('gilmat_theme_pref', next);
+      applyTheme();
+      showToast(next === 'auto' ? '스마트폰 설정에 맞춰 자동 전환돼요.' : (next === 'dark' ? '다크모드로 고정했어요.' : '데이모드로 고정했어요.'));
+    });
+
+    // --- Kakao Map Init ---
     async function initKakaoMap() {
       try {
         const resp = await fetch('/api/config');
         const cfg = await resp.json();
-        state.hasTmap = Boolean(cfg && cfg.hasTmap);
+        state.hasTmap = Boolean(cfg && cfg.hasTmapKey);
         if (!cfg || !cfg.kakaoJsKey) {
           document.getElementById('mapKeyNotice').classList.remove('hidden');
           return;
         }
-        await new Promise((resolve, reject) => {
-          const script = document.createElement('script');
-          script.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=' + encodeURIComponent(cfg.kakaoJsKey) + '&autoload=false';
-          script.onload = resolve;
-          script.onerror = reject;
-          document.head.appendChild(script);
-        });
-        window.kakao.maps.load(() => {
-          const container = document.getElementById('map');
-          kakaoMap = new kakao.maps.Map(container, {
-            center: new kakao.maps.LatLng(37.5665, 126.9780),
-            level: 8
+        const script = document.createElement('script');
+        script.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=' + encodeURIComponent(cfg.kakaoJsKey) + '&autoload=false';
+        script.onload = () => {
+          kakao.maps.load(() => {
+            const container = document.getElementById('map');
+            kakaoMap = new kakao.maps.Map(container, {
+              center: new kakao.maps.LatLng(37.5665, 126.9780),
+              level: 6
+            });
+            kakaoMap.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.LEFT);
+            setMapVisualMode(state.mapMode, false);
           });
-          const zoomControl = new kakao.maps.ZoomControl();
-          kakaoMap.addControl(zoomControl, kakao.maps.ControlPosition.LEFT);
-          if (state.route) {
-            renderRouteOnMap();
-            renderAll();
-          }
-        });
-      } catch (e) {
+        };
+        script.onerror = () => document.getElementById('mapKeyNotice').classList.remove('hidden');
+        document.head.appendChild(script);
+      } catch {
         document.getElementById('mapKeyNotice').classList.remove('hidden');
       }
     }
 
-    // Active Field (A or B) indicator for quick chips
+    // --- Field Focus & Quick Fill ---
     function setActiveField(field) {
       state.activeField = field;
       const badge = document.getElementById('targetFieldBadge');
@@ -593,13 +685,13 @@
       if (field === 'origin') {
         badge.textContent = 'A에 입력:';
         badge.className = 'text-xs font-black text-[#FF5449] shrink-0 mr-0.5';
-        oWrap.className = 'flex items-center bg-[#FAF8F3] rounded-xl px-3.5 py-3 border-2 border-[#141414] transition';
-        dWrap.className = 'flex items-center bg-[#FAF8F3] rounded-xl px-3.5 py-3 border border-[#141414]/25 transition';
+        oWrap.classList.add('active');
+        dWrap.classList.remove('active');
       } else {
         badge.textContent = 'B에 입력:';
         badge.className = 'text-xs font-black text-[#141414] bg-[#C8F526] px-2 py-0.5 rounded shrink-0 mr-0.5';
-        oWrap.className = 'flex items-center bg-[#FAF8F3] rounded-xl px-3.5 py-3 border border-[#141414]/25 transition';
-        dWrap.className = 'flex items-center bg-[#FAF8F3] rounded-xl px-3.5 py-3 border-2 border-[#141414] transition';
+        oWrap.classList.remove('active');
+        dWrap.classList.add('active');
       }
     }
 
@@ -612,7 +704,6 @@
       }
     }
 
-    // GPS Current Location -> Reverse Geocode
     function fillWithCurrentLocation(targetField) {
       if (!navigator.geolocation) {
         showToast('이 브라우저에서는 위치 기능을 지원하지 않습니다.');
@@ -632,36 +723,30 @@
             const data = await resp.json();
             const addr = (resp.ok && data && data.address) ? data.address : (lat.toFixed(5) + ', ' + lng.toFixed(5));
             fillAddressField(targetField, addr);
-            if (kakaoMap) {
-              kakaoMap.panTo(new kakao.maps.LatLng(lat, lng));
-            }
-            showToast((targetField === 'origin' ? '출발지(A)' : '도착지(B)') + '에 현위치를 입력했습니다.');
+            if (kakaoMap) kakaoMap.panTo(new kakao.maps.LatLng(lat, lng));
+            showToast((targetField === 'origin' ? '출발지(A)' : '도착지(B)') + '에 현위치를 입력했어요.');
           } catch {
             showToast('현위치 주소 변환에 실패했습니다.');
           }
         },
-        () => {
-          showToast('위치 권한이 거부되었거나 현위치를 확인할 수 없습니다.');
-        },
+        () => showToast('위치 권한이 거부되었거나 현위치를 확인할 수 없습니다.'),
         { enableHighAccuracy: true, timeout: 8000 }
       );
     }
 
-    // Saved Addresses Chips
     function renderSavedAddrChips() {
       const container = document.getElementById('savedAddrChips');
-      const chips = [];
-      chips.push({ key: 'home', label: '집', addr: state.savedAddrs.home || '' });
-      chips.push({ key: 'work', label: '회사', addr: state.savedAddrs.work || '' });
+      const chips = [
+        { key: 'home', label: '집', addr: state.savedAddrs.home || '' },
+        { key: 'work', label: '회사', addr: state.savedAddrs.work || '' }
+      ];
       (state.savedAddrs.custom || []).forEach((item, idx) => {
         chips.push({ key: 'custom_' + idx, label: item.label, addr: item.addr });
       });
-
-      container.innerHTML = chips.map(c => {
+      container.innerHTML = chips.map((c) => {
         const isSet = Boolean(c.addr);
         return '<button type="button" data-saved-key="' + c.key + '" data-saved-addr="' + (c.addr || '').replace(/"/g, '&quot;') + '" ' +
-          'class="saved-chip px-2.5 py-1 rounded-full font-semibold shrink-0 border transition ' +
-          (isSet ? 'bg-[#FAF8F3] hover:bg-[#C8F526] text-[#141414] border border-[#141414]/35 font-extrabold' : 'bg-[#FAF8F3] hover:bg-[#EFECE4] text-[#78716C] border border-dashed border-[#141414]/25') + '">' +
+          'class="saved-chip gm-pill px-3 py-1 rounded-full shrink-0 ' + (isSet ? '' : 'opacity-65 border-dashed') + '">' +
           c.label + (isSet ? '' : ' +') + '</button>';
       }).join('');
     }
@@ -672,19 +757,19 @@
       const listEl = document.getElementById('favAddrList');
       const items = state.savedAddrs.custom || [];
       if (items.length === 0) {
-        listEl.innerHTML = '<p class="text-slate-500 text-[11px] py-1">저장된 즐겨찾기 주소가 없습니다.</p>';
+        listEl.innerHTML = '<p class="gm-muted text-xs py-1">저장된 즐겨찾기 주소가 없습니다.</p>';
         return;
       }
       listEl.innerHTML = items.map((item, idx) =>
-        '<div class="flex items-center justify-between gap-2 bg-white border-[1.5px] border-[#141414] rounded-xl px-3 py-2">' +
-          '<div class="min-w-0"><span class="font-black text-[#141414] mr-1.5">' + item.label + '</span><span class="text-[#57534E] truncate">' + item.addr + '</span></div>' +
+        '<div class="flex items-center justify-between gap-2 gm-card rounded-xl px-3 py-2">' +
+          '<div class="min-w-0"><span class="font-black mr-1.5">' + item.label + '</span><span class="gm-muted truncate">' + item.addr + '</span></div>' +
           '<button type="button" data-del-idx="' + idx + '" class="del-fav-addr text-[#FF5449] font-black shrink-0">삭제</button>' +
         '</div>'
       ).join('');
     }
 
     function parseTimeToMin(hhmm) {
-      const parts = (hhmm || '12:00').split(':');
+      const parts = String(hhmm || '12:00').split(':');
       return (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
     }
     function formatMinToHHMM(totalMin) {
@@ -692,69 +777,52 @@
       return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
     }
 
-    function evaluateOpenStatus(place) {
-      const etaTotal = parseTimeToMin(state.departTime) + (place.progressMin || 0);
-      const etaDay = (state.dayOfWeek + Math.floor(etaTotal / 1440)) % 7;
-      const etaMin = etaTotal % 1440;
-      const etaStr = formatMinToHHMM(etaMin);
-
-      if (!Array.isArray(place.googlePeriods) || place.googlePeriods.length === 0) {
-        return { status: 'unknown', label: etaStr + ' 도착 (영업 미확인)', etaStr, isOpen: true };
-      }
-      if (place.googlePeriods.length === 1 && !place.googlePeriods[0].close) {
-        return { status: 'open', label: etaStr + ' 도착 영업 중', etaStr, isOpen: true };
-      }
-      for (const p of place.googlePeriods) {
-        if (!p.open) continue;
-        const oDay = p.open.day;
-        const oMin = (p.open.hour || 0) * 60 + (p.open.minute || 0);
-        const cDay = p.close ? p.close.day : oDay;
-        const cMin = p.close ? (p.close.hour || 0) * 60 + (p.close.minute || 0) : 1440;
-        if (oDay === etaDay && cDay === etaDay && etaMin >= oMin && etaMin <= cMin) {
-          return { status: 'open', label: etaStr + ' 도착 영업 중', etaStr, isOpen: true };
-        }
-        if (oDay === etaDay && cDay !== oDay && etaMin >= oMin) {
-          return { status: 'open', label: etaStr + ' 도착 영업 중', etaStr, isOpen: true };
-        }
-      }
-      return { status: 'closed', label: etaStr + ' 영업 종료/휴무', etaStr, isOpen: false };
+    function getCuratedBadgeCls(src) {
+      if (src === '먹을텐데') return 'bg-[#C8F526] text-[#141414] border-[#141414]';
+      if (src === '최자로드') return 'bg-[#FFE14D] text-[#141414] border-[#141414]';
+      if (src === '또간집') return 'bg-[#FF5449] text-white border-[#141414]';
+      if (src === '미쉐린') return 'bg-[#DC2626] text-white border-[#141414]';
+      if (src === '백년가게') return 'bg-[#1E3A8A] text-white border-[#141414]';
+      if (src === '블루리본') return 'bg-[#0284C7] text-white border-[#141414]';
+      if (src === '백반기행') return 'bg-[#EA580C] text-white border-[#141414]';
+      return 'bg-[#141414] text-white border-[#141414]';
     }
 
     function getFilteredPlaces() {
       const kw = state.filterText.trim().toLowerCase();
-      return state.places.filter(p => {
-        if (state.category !== 'all' && p.category !== state.category) return false;
-        if (state.favOnly && !state.favorites.includes(p.id)) return false;
-        if (state.curatedOnly && (!p.curatedSources || p.curatedSources.length === 0)) return false;
-        if (state.excludeIcTrap && p.icTrap) return false;
-        if (p.detourMin > state.maxDetour) return false;
-        if (p.rating === null) {
-          if (!state.includeUnrated) return false;
-        } else {
-          if (p.rating < state.minRating) return false;
-          if (p.reviews < state.minReviews) return false;
-        }
-        if (state.openAtEta && !evaluateOpenStatus(p).isOpen) return false;
-        if (kw) {
-          const hay = [p.name, p.zone, p.address].concat(p.tags || []).join(' ').toLowerCase();
-          if (!hay.includes(kw)) return false;
-        }
-        return true;
-      }).sort((a, b) => {
-        if (state.sortBy === 'detour') return a.detourMin - b.detourMin || (b.rating || 0) - (a.rating || 0);
-        if (state.sortBy === 'rating') return (b.rating || -1) - (a.rating || -1) || b.reviews - a.reviews;
-        if (state.sortBy === 'reviews') return b.reviews - a.reviews || (b.rating || 0) - (a.rating || 0);
-        return a.progressMin - b.progressMin;
-      });
-    }
-
-    function catMeta(cat) {
-      if (cat === 'cafe') return { label: '카페', cls: 'bg-[#E0F2FE] text-[#141414] border-[1.5px] border-[#141414]', pinCls: 'gm-pin-cafe' };
-      return { label: '음식점', cls: 'bg-[#FAF8F3] text-[#141414] border-[1.5px] border-[#141414]', pinCls: 'gm-pin-food' };
+      return state.places
+        .filter((p) => {
+          if (state.subCuisine !== 'all' && p.subCuisine !== state.subCuisine) return false;
+          if (state.curatedOnly && (!p.curatedSources || p.curatedSources.length === 0)) return false;
+          if (state.favOnly && !state.favorites.includes(p.id)) return false;
+          if (p.detourMin > state.maxDetour) return false;
+          if (state.excludeIcTrap && p.icTrap) return false;
+          if (kw) {
+            const hay = [p.name, p.zone, p.address, p.subCuisine, ...(p.tags || []), ...(p.curatedSources || [])].join(' ').toLowerCase();
+            if (!hay.includes(kw)) return false;
+          }
+          return true;
+        })
+        .sort((a, b) => {
+          if (state.sortBy === 'curated') {
+            const ca = (a.curatedSources || []).length > 0 ? 1 : 0;
+            const cb = (b.curatedSources || []).length > 0 ? 1 : 0;
+            if (ca !== cb) return cb - ca;
+            return (a.kakaoRank || 99) - (b.kakaoRank || 99) || a.detourMin - b.detourMin;
+          }
+          if (state.sortBy === 'detour') return a.detourMin - b.detourMin || (a.kakaoRank || 99) - (b.kakaoRank || 99);
+          if (state.sortBy === 'progress') return a.progressMin - b.progressMin;
+          // Default: popular (Kakao accuracy rank -> hitCount -> detour)
+          const ra = a.kakaoRank || 99;
+          const rb = b.kakaoRank || 99;
+          if (ra !== rb) return ra - rb;
+          if ((b.hitCount || 1) !== (a.hitCount || 1)) return (b.hitCount || 1) - (a.hitCount || 1);
+          return a.detourMin - b.detourMin;
+        });
     }
 
     function clearMapOverlays(arr) {
-      arr.forEach(obj => obj.setMap(null));
+      arr.forEach((obj) => obj.setMap(null));
       arr.length = 0;
     }
 
@@ -783,7 +851,8 @@
 
       const startEl = document.createElement('div');
       startEl.className = 'gm-endpoint';
-      startEl.style.background = '#FF5449'; startEl.style.color = '#FFFFFF';
+      startEl.style.background = '#FF5449';
+      startEl.style.color = '#FFFFFF';
       startEl.textContent = 'A';
       const startOv = new kakao.maps.CustomOverlay({
         position: new kakao.maps.LatLng(state.route.origin.lat, state.route.origin.lng),
@@ -794,7 +863,8 @@
 
       const endEl = document.createElement('div');
       endEl.className = 'gm-endpoint';
-      endEl.style.background = '#C8F526'; endEl.style.color = '#141414';
+      endEl.style.background = '#C8F526';
+      endEl.style.color = '#141414';
       endEl.textContent = 'B';
       const endOv = new kakao.maps.CustomOverlay({
         position: new kakao.maps.LatLng(state.route.destination.lat, state.route.destination.lng),
@@ -804,16 +874,17 @@
       endpointOverlays.push(endOv);
 
       if (state.showIcLayer) {
-        state.samplingNodes.forEach(node => {
+        state.samplingNodes.forEach((node) => {
+          const isFocus = node.type === 'focus';
           const c = new kakao.maps.Circle({
             center: new kakao.maps.LatLng(node.lat, node.lng),
             radius: node.radius,
-            strokeWeight: 1,
-            strokeColor: node.type === 'walk' ? '#10B981' : (node.type === 'ic' ? '#34D399' : '#3B82F6'),
-            strokeOpacity: 0.6,
+            strokeWeight: isFocus ? 2 : 1,
+            strokeColor: isFocus ? '#FF5449' : (node.type === 'walk' ? '#10B981' : '#2563EB'),
+            strokeOpacity: 0.65,
             strokeStyle: 'dashed',
-            fillColor: node.type === 'walk' ? '#10B981' : '#3B82F6',
-            fillOpacity: 0.08
+            fillColor: isFocus ? '#FF5449' : '#2563EB',
+            fillOpacity: isFocus ? 0.12 : 0.06
           });
           c.setMap(kakaoMap);
           icCircles.push(c);
@@ -824,28 +895,27 @@
     function renderAll() {
       const filtered = getFilteredPlaces();
       document.getElementById('favCount').textContent = state.favorites.length;
-      document.getElementById('curatedMatchCount').textContent = state.places.filter(p => p.curatedSources && p.curatedSources.length > 0).length;
+      document.getElementById('curatedMatchCount').textContent = state.places.filter((p) => p.curatedSources && p.curatedSources.length > 0).length;
       if (state.places.length > 0) {
-        document.getElementById('resultCountLabel').textContent = '조건 일치 ' + filtered.length + '곳 (제한 없이 전체 표시)';
+        document.getElementById('resultCountLabel').textContent = '조건 일치 ' + filtered.length + '곳';
       }
 
       if (kakaoMap) {
         clearMapOverlays(placeOverlays);
-        filtered.forEach(p => {
-          const meta = catMeta(p.category);
-          const pinClass = p.icTrap ? 'gm-pin-trap' : (p.rating === null ? 'gm-pin-unrated' : meta.pinCls);
-          const ratingText = p.rating !== null ? '★' + p.rating.toFixed(1) : '미확인';
+        filtered.forEach((p) => {
+          const isCur = p.curatedSources && p.curatedSources.length > 0;
+          const pinClass = p.icTrap ? 'gm-pin-trap' : (isCur ? 'gm-pin-curated' : (p.category === 'cafe' ? 'gm-pin-cafe' : 'gm-pin-food'));
           const isSel = state.selectedId === p.id;
 
           const el = document.createElement('div');
           el.className = 'gm-pin ' + pinClass + (isSel ? ' selected' : '');
-          el.textContent = ratingText;
+          el.textContent = isCur ? '★ ' + p.curatedSources[0] : (p.subCuisine || '맛집');
           el.title = p.name + ' (+' + p.detourMin + '분)';
           el.addEventListener('click', () => selectPlace(p.id, false));
 
           const ov = new kakao.maps.CustomOverlay({
             position: new kakao.maps.LatLng(p.lat, p.lng),
-            content: el, yAnchor: 0.5, zIndex: isSel ? 90 : 20
+            content: el, yAnchor: 0.5, zIndex: isSel ? 90 : (isCur ? 45 : 20)
           });
           ov.setMap(kakaoMap);
           placeOverlays.push(ov);
@@ -854,50 +924,47 @@
 
       const listEl = document.getElementById('placesList');
       if (state.places.length === 0) return;
+
       if (filtered.length === 0) {
         const kw = state.filterText.trim();
-        listEl.innerHTML = '<div class="text-center py-12 px-4 space-y-3 bg-white border-2 border-[#141414] rounded-2xl">' +
-          '<p class="text-base font-black text-[#141414]">' + (kw ? ("현재 목록에 '" + kw + "' 결과가 없어요") : '조건에 맞는 맛집이 없어요') + '</p>' +
-          (kw ? '<button type="button" id="emptyMenuSearchBtn" class="px-4 py-2 rounded-xl bg-[#C8F526] text-[#141414] border-2 border-[#141414] text-xs font-black">경로 전체에서 \'' + kw + '\' 실시간 검색</button>'
-              : '<p class="text-xs font-medium text-[#57534E]">우회시간·평점·영업 중 필터를 살짝 넓혀 보세요.</p>') +
+        listEl.innerHTML = '<div class="text-center py-12 px-4 space-y-3 gm-card rounded-2xl">' +
+          '<p class="text-lg font-black">' + (kw ? ("현재 목록에 '" + kw + "' 결과가 없어요") : '조건에 맞는 맛집이 없어요') + '</p>' +
+          (kw ? '<button type="button" id="emptyMenuSearchBtn" class="px-4 py-2.5 rounded-xl bg-[#C8F526] text-[#141414] border-2 border-[#141414] text-sm font-black">경로 전체에서 \'' + kw + '\' 실시간 검색</button>'
+              : '<p class="text-sm font-medium gm-muted">업종 필터나 최대 우회 시간을 넓혀 보세요.</p>') +
         '</div>';
       } else {
-        listEl.innerHTML = filtered.map(p => {
-          const meta = catMeta(p.category);
-          const openInfo = evaluateOpenStatus(p);
+        const depMin = parseTimeToMin(state.departTime);
+        listEl.innerHTML = filtered.map((p) => {
           const isFav = state.favorites.includes(p.id);
           const isSel = state.selectedId === p.id;
-          const openBadge = openInfo.status === 'open'
-            ? '<span class="text-xs font-extrabold text-[#141414] bg-[#D9F99D] border-[1.5px] border-[#141414] px-2 py-0.5 rounded-full">' + openInfo.label + '</span>'
-            : openInfo.status === 'unknown'
-              ? '<span class="text-xs font-bold text-[#57534E] bg-[#F3EFE6] px-2 py-0.5 rounded-full">' + openInfo.label + '</span>'
-              : '<span class="text-xs font-extrabold text-white bg-[#FF5449] border-[1.5px] border-[#141414] px-2 py-0.5 rounded-full">' + openInfo.label + '</span>';
-          const ratingBlock = p.rating !== null
-            ? '<span class="text-lg font-black text-[#141414] tracking-tight"><span class="text-[#FF5449]">★</span> ' + p.rating.toFixed(1) + '</span><span class="text-[#57534E] text-xs font-semibold ml-1">(' + p.reviews.toLocaleString() + ')</span>'
-            : '<span class="text-xs font-bold text-[#78716C]">평점 미확인</span>';
+          const etaStr = formatMinToHHMM(depMin + (p.progressMin || 0));
+          const naverUrl = 'https://map.naver.com/p/search/' + encodeURIComponent(p.name + ' ' + (p.zone || ''));
+          const curatedBadges = (p.curatedSources && p.curatedSources.length)
+            ? p.curatedSources.map((src) => '<span class="text-xs font-black px-2.5 py-0.5 rounded-full border-[1.5px] ' + getCuratedBadgeCls(src) + '">' + src + '</span>').join('')
+            : '';
+          const rankLabel = p.kakaoRank && p.kakaoRank <= 5
+            ? '<span class="text-xs font-black px-2 py-0.5 rounded-lg gm-soft">구간 인기 ' + p.kakaoRank + '위</span>'
+            : '<span class="text-xs font-bold gm-muted">' + (p.subCuisine || '음식점') + '</span>';
 
-          const tagsHtml = (p.tags || []).slice(0, 4).map(t => '<span class="text-xs font-bold text-[#44403C] bg-[#FAF8F3] border border-[#141414]/20 px-2 py-0.5 rounded-md">' + t + '</span>').join('');
-          return '<article data-id="' + p.id + '" class="place-card bg-white rounded-2xl p-3.5 border-2 ' + (isSel ? 'border-[#141414] bg-[#FFFDF7] shadow-[3px_3px_0_#141414]' : 'border-[#141414] hover:shadow-[3px_3px_0_#141414]') + ' transition cursor-pointer">' +
+          return '<article data-id="' + p.id + '" class="place-card gm-card rounded-2xl p-3.5 ' + (isSel ? 'gm-card-shadow' : '') + ' transition cursor-pointer">' +
             '<div class="flex items-center justify-between gap-2">' +
-              '<div class="flex items-center gap-2">' +
+              '<div class="flex items-center gap-2 flex-wrap">' +
                 '<span class="text-xl font-black leading-none px-3 py-1.5 rounded-xl bg-[#C8F526] text-[#141414] border-2 border-[#141414] tracking-tight">+' + p.detourMin + '분</span>' +
-                '<div class="flex items-baseline">' + ratingBlock + '</div>' +
+                rankLabel +
               '</div>' +
-              '<button type="button" data-fav-id="' + p.id + '" aria-label="경유지 찜" class="fav-toggle-btn p-1.5 rounded-xl border-[1.5px] border-[#141414]/20 hover:border-[#141414] ' + (isFav ? 'bg-[#FF5449] text-white border-[#141414]' : 'bg-[#FAF8F3] text-[#141414]/50 hover:text-[#FF5449]') + '">' +
-                '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="' + (isFav ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>' +
+              '<button type="button" data-fav-id="' + p.id + '" aria-label="찜" class="fav-toggle-btn p-1.5 rounded-xl border border-[var(--border-soft)] ' + (isFav ? 'bg-[#FF5449] text-white border-[#141414]' : 'gm-soft gm-muted') + '">' +
+                '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="' + (isFav ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>' +
               '</button>' +
             '</div>' +
-            '<h3 class="text-xl font-black text-[#141414] mt-2.5 leading-tight tracking-tight truncate">' + p.name + '</h3>' +
+            '<h3 class="text-xl font-black mt-2.5 leading-tight tracking-tight truncate">' + p.name + '</h3>' +
             '<div class="flex items-center gap-1.5 flex-wrap mt-2">' +
-              (p.curatedSources && p.curatedSources.length ? p.curatedSources.map(src => '<span class="text-xs font-black px-2.5 py-0.5 rounded-full border-[1.5px] ' + getCuratedBadgeCls(src) + '">' + src + '</span>').join('') : '') +
-              '<span class="text-xs font-extrabold px-2.5 py-0.5 rounded-full ' + meta.cls + '">' + meta.label + '</span>' +
-              (p.detourVerified ? '<span class="text-[11px] font-extrabold text-[#141414] bg-[#E0F2FE] border-[1.5px] border-[#141414] px-2 py-0.5 rounded-full">실측</span>' : '') +
-              (p.icTrap ? '<span class="text-xs font-extrabold text-white bg-[#FF5449] border-[1.5px] border-[#141414] px-2 py-0.5 rounded-full">IC 주의</span>' : '') +
-              openBadge +
+              curatedBadges +
+              '<span class="text-xs font-extrabold px-2.5 py-0.5 rounded-full gm-soft">' + (p.subCuisine || '음식점') + '</span>' +
+              (p.icTrap ? '<span class="text-xs font-extrabold text-white bg-[#FF5449] border border-[#141414] px-2 py-0.5 rounded-full">IC 주의</span>' : '') +
             '</div>' +
-            '<div class="flex items-center justify-between gap-2 mt-2.5 pt-2.5 border-t border-[#141414]/10 text-sm">' +
-              '<span class="font-bold text-[#57534E] truncate">' + p.zone + ' · 출발 +' + p.progressMin + '분</span>' +
-              '<div class="flex flex-wrap gap-1 shrink-0">' + tagsHtml + '</div>' +
+            '<div class="flex items-center justify-between gap-2 mt-2.5 pt-2.5 gm-border-t text-sm">' +
+              '<span class="font-bold gm-muted truncate">' + p.zone + ' · ' + etaStr + ' 도착 (+' + p.progressMin + '분)</span>' +
+              '<a href="' + naverUrl + '" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();" class="px-2.5 py-1 rounded-lg bg-[#03C75A] text-white font-black text-xs shrink-0">네이버지도</a>' +
             '</div>' +
           '</article>';
         }).join('');
@@ -906,192 +973,148 @@
     }
 
     async function runLiveRouteSearch(menuKeyword) {
-      const origin = document.getElementById('originInput').value.trim();
-      const destination = document.getElementById('destInput').value.trim();
-      const keyword = (typeof menuKeyword === 'string' ? menuKeyword : '').trim();
+      const originQuery = document.getElementById('originInput').value.trim();
+      const destQuery = document.getElementById('destInput').value.trim();
+      const kw = typeof menuKeyword === 'string' ? menuKeyword : '';
 
-      if (!origin || !destination) {
+      if (!originQuery || !destQuery) {
         showToast('출발지(A)와 도착지(B)를 모두 입력해 주세요.');
         return;
       }
 
       const btn = document.getElementById('scanRouteBtn');
-      const label = document.getElementById('scanBtnLabel');
+      const btnLabel = document.getElementById('scanBtnLabel');
+      const dot = document.getElementById('statusDot');
+      const cov = document.getElementById('coverageText');
+      const statsEl = document.getElementById('pipelineStats');
+
       state.loading = true;
       btn.disabled = true;
-      label.textContent = '탐색 중...';
-      document.getElementById('statusDot').className = 'w-2 h-2 rounded-full bg-amber-400 animate-pulse';
-      document.getElementById('coverageText').textContent =
-        (state.travelMode === 'walk' ? 'TMAP 도보 경로' : '카카오 차량 경로') + ' 계산 및 음식점·카페 수집 중...';
+      btnLabel.textContent = kw ? ("'" + kw + "' 탐색 중...") : (state.travelMode === 'walk' ? '도보 탐색 중...' : '경로 탐색 중...');
+      dot.className = 'w-2.5 h-2.5 rounded-full bg-[#FF5449] animate-pulse shrink-0';
+      cov.textContent = '카카오 인기도순 + 1,121 검증 맛집 탐색 중...';
 
       try {
         const resp = await fetch('/api/route-search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            origin,
-            destination,
-            keyword,
+            originQuery,
+            destQuery,
+            keyword: kw,
             mode: state.travelMode,
-            enrichRatings: state.enrichRatings && state.quota.googleEnterprise < 900
+            targetMin: state.targetMin,
+            targetWindowMin: 15
           })
         });
-        const rawText = await resp.text();
-        let data = null;
-        try { data = rawText ? JSON.parse(rawText) : null; } catch {}
-        if (!resp.ok || !data) {
-          throw new Error((data && data.error) || ('API 응답 오류 (HTTP ' + resp.status + ')'));
-        }
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || ('요청 실패 (' + resp.status + ')'));
 
         state.route = data.route;
         state.samplingNodes = data.samplingNodes || [];
-        state.places = attachCuratedBadges(data.places || []);
+        state.places = data.places || [];
         state.selectedId = null;
 
-        // If searched by menu keyword directly, clear local text filter so all API results show immediately
-        if (keyword) {
-          state.filterText = '';
-          document.getElementById('filterInput').value = '';
-          document.getElementById('clearFilterBtn').classList.add('hidden');
+        if (data.apiCalls) {
+          state.quota.kakaoLocal += data.apiCalls.kakaoLocal || 0;
+          state.quota.kakaoDirections += data.apiCalls.kakaoDirections || 0;
+          state.quota.tmapPedestrian += data.apiCalls.tmapPedestrian || 0;
+          safeSet('gilmat_v5_quota', state.quota);
         }
 
-        state.quota.googleEnterprise += (data.apiCalls && data.apiCalls.googleEnterprise) || 0;
-        state.quota.kakaoLocal += (data.apiCalls && data.apiCalls.kakaoLocal) || 0;
-        state.quota.kakaoDirections += (data.apiCalls && data.apiCalls.kakaoDirections) || 0;
-        state.quota.tmapWalk += (data.apiCalls && data.apiCalls.tmapWalk) || 0;
-        safeSet('gilmat_prod_quota', state.quota);
-
-        const modeLabel = data.route.mode === 'walk' ? '도보' : '차량';
-        document.getElementById('statusDot').className = 'w-2 h-2 rounded-full bg-emerald-400';
-        document.getElementById('coverageText').textContent =
-          modeLabel + ' ' + data.route.distanceKm + 'km (약 ' + data.route.durationMin + '분) · 구간 ' + data.coverage.completedNodes + '/' + data.coverage.totalNodes;
-
-        const errNote = (data.debug && data.debug.googleError) ? (' · Google 오류(' + data.debug.googleError + ')') : '';
-        document.getElementById('pipelineStats').textContent =
-          (keyword ? ("'" + keyword + "' ") : '') + '음식점 ' + (data.coverage.foodCount || 0) + ' · 카페 ' + (data.coverage.cafeCount || 0) + ' · 평점 ' + data.coverage.ratingMatched + '곳' + errNote;
+        const modeTxt = state.route.mode === 'walk' ? '도보' : '차량';
+        const focusTxt = state.targetMin > 0 ? (' · 출발 +' + state.targetMin + '분 구간') : '';
+        dot.className = 'w-2.5 h-2.5 rounded-full bg-[#16A34A] shrink-0';
+        cov.textContent = modeTxt + ' ' + state.route.distanceKm + 'km (' + state.route.durationMin + '분)' + focusTxt + ' · ' + state.places.length + '곳';
+        statsEl.textContent = '지점 ' + data.stats.completedNodes + '/' + data.stats.totalNodes + ' · 유명맛집 ' + (data.stats.curatedCount || 0) + '곳';
 
         renderRouteOnMap();
         renderAll();
         if (kakaoMap && routeBounds) kakaoMap.setBounds(routeBounds);
-        showToast((keyword ? ("'" + keyword + "' ") : '') + '음식점·카페 ' + state.places.length + '곳을 찾았습니다.');
+        showToast(state.places.length + '곳을 찾았어요 (유명맛집 ' + (data.stats.curatedCount || 0) + '곳)');
       } catch (err) {
-        document.getElementById('statusDot').className = 'w-2 h-2 rounded-full bg-rose-500';
-        document.getElementById('coverageText').textContent = err.message;
+        dot.className = 'w-2.5 h-2.5 rounded-full bg-[#FF5449] shrink-0';
+        cov.textContent = err.message;
         showToast(err.message);
       } finally {
         state.loading = false;
         btn.disabled = false;
-        label.textContent = '경로 탐색';
+        btnLabel.textContent = '경로 맛집 탐색';
       }
     }
 
-    // Modal Scroll Lock
-    let savedScrollY = 0;
-    let isBodyLocked = false;
     function syncBodyScrollLock() {
-      const detailOpen = !document.getElementById('detailModal').classList.contains('hidden');
-      const quotaOpen = !document.getElementById('quotaModal').classList.contains('hidden');
-      const addrOpen = !document.getElementById('addrModal').classList.contains('hidden');
-      const curatedOpen = !document.getElementById('curatedModal').classList.contains('hidden');
-      const shouldLock = detailOpen || quotaOpen || addrOpen || curatedOpen;
-      if (shouldLock && !isBodyLocked) {
-        savedScrollY = window.scrollY || 0;
-        document.documentElement.style.overflow = 'hidden';
-        document.body.style.overflow = 'hidden';
-        document.body.style.position = 'fixed';
-        document.body.style.top = '-' + savedScrollY + 'px';
-        document.body.style.left = '0';
-        document.body.style.right = '0';
-        document.body.style.width = '100%';
-        isBodyLocked = true;
-      } else if (!shouldLock && isBodyLocked) {
-        document.documentElement.style.overflow = '';
-        document.body.style.overflow = '';
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.left = '';
-        document.body.style.right = '';
-        document.body.style.width = '';
-        window.scrollTo(0, savedScrollY);
-        isBodyLocked = false;
-      }
+      const ids = ['detailModal', 'quotaModal', 'addrModal', 'curatedModal'];
+      const shouldLock = ids.some((id) => !document.getElementById(id).classList.contains('hidden'));
+      document.body.style.overflow = shouldLock ? 'hidden' : '';
+      document.documentElement.style.overflow = shouldLock ? 'hidden' : '';
     }
 
     function selectPlace(id, panMap) {
       state.selectedId = id;
-      const p = state.places.find(item => item.id === id);
-      if (!p) return;
       renderAll();
+      const p = state.places.find((x) => x.id === id);
+      if (!p) return;
       if (panMap && kakaoMap) {
         kakaoMap.panTo(new kakao.maps.LatLng(p.lat, p.lng));
-        if (kakaoMap.getLevel() > 6) kakaoMap.setLevel(5);
       }
       openDetailDrawer(p);
     }
 
     function openDetailDrawer(p) {
-      const meta = catMeta(p.category);
-      const openInfo = evaluateOpenStatus(p);
       const isFav = state.favorites.includes(p.id);
+      const depMin = parseTimeToMin(state.departTime);
+      const etaStr = formatMinToHHMM(depMin + (p.progressMin || 0));
 
       const catBadge = document.getElementById('detailCatBadge');
-      catBadge.textContent = meta.label;
-      catBadge.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full ' + meta.cls;
-      document.getElementById('detailSourceBadge').textContent = p.source;
+      catBadge.textContent = p.subCuisine || '음식점';
+      catBadge.className = 'text-xs font-black px-2.5 py-0.5 rounded-full bg-[#C8F526] text-[#141414] border border-[#141414]';
+      document.getElementById('detailRankBadge').textContent = p.kakaoRank ? ('카카오 구간 인기 ' + p.kakaoRank + '위') : '카카오 로컬';
       document.getElementById('detailName').textContent = p.name;
       document.getElementById('detailAddr').textContent = p.address;
 
-      const naverQuery = encodeURIComponent(p.name + ' ' + (p.zone || ''));
-      const naverMapUrl = 'https://map.naver.com/p/search/' + naverQuery;
-
-      const ratingHtml = p.rating !== null
-        ? '<div class="text-2xl font-black text-[#141414]"><span class="text-[#FF5449]">★</span> ' + p.rating.toFixed(1) + '<span class="text-xs font-bold text-[#57534E] ml-1.5">/ 5.0 · ' + p.reviews.toLocaleString() + '명 평가</span></div>'
-        : '<div class="text-sm font-black text-[#57534E]">Google 평점 미확인 <span class="text-xs font-semibold">(카카오 로컬 수집)</span></div>';
-
-      const tagsHtml = (p.tags || []).map(t => '<span class="bg-[#FAF8F3] border border-[#141414]/25 text-[#141414] font-bold px-2 py-0.5 rounded-md">' + t + '</span>').join('');
+      const naverUrl = 'https://map.naver.com/p/search/' + encodeURIComponent(p.name + ' ' + (p.zone || ''));
+      const curatedHtml = (p.curatedSources && p.curatedSources.length)
+        ? '<div class="flex flex-wrap gap-1.5">' + p.curatedSources.map((s) => '<span class="text-xs font-black px-2.5 py-1 rounded-full border-[1.5px] ' + getCuratedBadgeCls(s) + '">' + s + ' 선정</span>').join('') + '</div>'
+        : '';
+      const tagsHtml = (p.tags || []).map((t) => '<span class="gm-soft font-bold px-2.5 py-1 rounded-lg text-xs">' + t + '</span>').join('');
       const showRecalc = state.route && state.route.mode === 'car';
 
       document.getElementById('detailBody').innerHTML =
-        '<a href="' + naverMapUrl + '" target="_blank" rel="noopener noreferrer" class="block w-full py-3 rounded-xl bg-[#141414] hover:bg-[#292524] text-[#C8F526] border-2 border-[#141414] text-base font-black text-center shadow-[3px_3px_0_#FF5449] transition">네이버지도에서 사진·블로그 리뷰 보기 →</a>' +
+        curatedHtml +
+        '<a href="' + naverUrl + '" target="_blank" rel="noopener noreferrer" class="block w-full py-3.5 rounded-xl bg-[#03C75A] text-white border-2 border-[#141414] text-base font-black text-center shadow-[3px_3px_0_var(--shadow-ink)]">네이버지도에서 사진·별점·영업시간 보기 →</a>' +
         '<div class="grid grid-cols-2 gap-2.5">' +
-          '<div class="p-3.5 rounded-2xl bg-[#C8F526] border-2 border-[#141414]">' +
-            '<div class="text-[11px] font-extrabold text-[#141414]">' + (p.detourVerified ? '실측 추가 이동' : '추정 추가 이동') + '</div>' +
-            '<div class="text-3xl font-black text-[#141414] mt-0.5 tracking-tight">+' + p.detourMin + '분</div>' +
-            '<div class="text-[11px] font-bold text-[#141414]/75 mt-0.5">경로선 직선 ' + p.directKm + 'km</div>' +
+          '<div class="p-3.5 rounded-2xl bg-[#C8F526] text-[#141414] border-2 border-[#141414]">' +
+            '<div class="text-xs font-extrabold">' + (p.detourVerified ? '실측 추가 이동' : '추정 추가 이동') + '</div>' +
+            '<div class="text-3xl font-black mt-0.5 tracking-tight">+' + p.detourMin + '분</div>' +
+            '<div class="text-xs font-bold opacity-75 mt-0.5">경로선 직선 ' + p.directKm + 'km</div>' +
           '</div>' +
-          '<div class="p-3.5 rounded-2xl bg-white border-2 border-[#141414]">' +
-            '<div class="text-[11px] font-extrabold text-[#57534E]">예상 도착 (' + openInfo.etaStr + ')</div>' +
-            '<div class="text-base font-black ' + (openInfo.isOpen ? 'text-[#15803D]' : 'text-[#FF5449]') + ' mt-1">' + openInfo.label + '</div>' +
-            '<div class="text-[11px] font-bold text-[#57534E] mt-0.5">출발 후 약 ' + p.progressMin + '분</div>' +
+          '<div class="p-3.5 rounded-2xl gm-card">' +
+            '<div class="text-xs font-extrabold gm-muted">예상 도착 시각</div>' +
+            '<div class="text-2xl font-black mt-1">' + etaStr + '</div>' +
+            '<div class="text-xs font-bold gm-muted mt-0.5">출발 후 약 ' + p.progressMin + '분</div>' +
           '</div>' +
         '</div>' +
-        '<div class="p-3.5 rounded-2xl bg-white border-2 border-[#141414] space-y-2">' +
-          '<div class="text-[11px] font-extrabold text-[#57534E]">구글 평점 및 실측</div>' +
-          ratingHtml +
-          (showRecalc ? '<button id="recalcDetourBtn" type="button" class="mt-2 w-full py-2 text-xs font-black text-[#141414] bg-[#FAF8F3] border-[1.5px] border-[#141414] hover:bg-[#C8F526] rounded-xl transition">실제 도로 우회시간 정밀 계산 (1회)</button>' : '') +
-        '</div>' +
+        (showRecalc ? '<button id="recalcDetourBtn" type="button" class="w-full py-2.5 text-sm font-black gm-card rounded-xl">실제 도로 우회시간 정밀 계산 (무료)</button>' : '') +
         (p.icTrap ? '<div class="p-3 rounded-2xl bg-[#FF5449] border-2 border-[#141414] text-xs font-bold text-white"><strong>고속도로 IC 우회 주의:</strong> ' + p.icTrapReason + '</div>' : '') +
-        '<div class="space-y-2.5 text-sm bg-white border-2 border-[#141414] rounded-2xl p-4">' +
-          '<div class="flex items-start gap-2"><span class="font-black text-[#141414] w-16 shrink-0">영업시간</span><span class="text-[#44403C] font-medium leading-relaxed">' + p.hoursText + '</span></div>' +
-          (p.phone ? '<div class="flex items-start gap-2"><span class="font-black text-[#141414] w-16 shrink-0">전화번호</span><span class="text-[#44403C] font-bold">' + p.phone + '</span></div>' : '') +
-          '<div class="flex items-start gap-2"><span class="font-black text-[#141414] w-16 shrink-0">업종·태그</span><div class="flex flex-wrap gap-1">' + tagsHtml + '</div></div>' +
+        '<div class="space-y-2.5 text-sm gm-card rounded-2xl p-4">' +
+          (p.phone ? '<div class="flex items-start gap-2"><span class="font-black w-16 shrink-0">전화번호</span><a href="tel:' + p.phone + '" class="font-bold text-[#FF5449]">' + p.phone + '</a></div>' : '') +
+          '<div class="flex items-start gap-2"><span class="font-black w-16 shrink-0">업종·메뉴</span><div class="flex flex-wrap gap-1.5">' + tagsHtml + '</div></div>' +
         '</div>' +
-        '<div class="pt-1">' +
-          '<button id="detailFavBtn" type="button" class="w-full py-2.5 rounded-xl text-xs font-black border-2 border-[#141414] transition ' + (isFav ? 'bg-[#FF5449] text-white' : 'bg-white text-[#141414] hover:bg-[#FAF8F3]') + '">' +
-            (isFav ? '♥ 경유지 찜 해제' : '♡ 경유지 후보로 찜하기') +
-          '</button>' +
-        '</div>';
+        '<button id="detailFavBtn" type="button" class="w-full py-3 rounded-xl text-sm font-black border-2 border-[var(--border-main)] ' + (isFav ? 'bg-[#FF5449] text-white' : 'gm-card') + '">' +
+          (isFav ? '♥ 경유지 찜 해제' : '♡ 경유지 후보로 찜하기') +
+        '</button>';
 
       const encName = encodeURIComponent(p.name);
       const kakaoUrl = p.kakaoUrl || ('https://map.kakao.com/link/to/' + encName + ',' + p.lat + ',' + p.lng);
       const tmapUrl = 'tmap://route?goalname=' + encName + '&goalx=' + p.lng + '&goaly=' + p.lat;
-      const googleUrl = p.googleMapsUri || ('https://www.google.com/maps/search/?api=1&query=' + encName);
+      const googleUrl = 'https://www.google.com/maps/search/?api=1&query=' + encName;
 
       document.getElementById('detailNavActions').innerHTML =
-        '<a href="' + naverMapUrl + '" target="_blank" rel="noopener noreferrer" class="py-3 rounded-xl bg-[#03C75A] text-white border-[1.5px] border-[#141414] font-black text-sm text-center">네이버</a>' +
+        '<a href="' + naverUrl + '" target="_blank" rel="noopener noreferrer" class="py-3 rounded-xl bg-[#03C75A] text-white border-[1.5px] border-[#141414] font-black text-sm text-center">네이버</a>' +
         '<a href="' + kakaoUrl + '" target="_blank" rel="noopener noreferrer" class="py-3 rounded-xl bg-[#FFE14D] text-[#141414] border-[1.5px] border-[#141414] font-black text-sm text-center">카카오</a>' +
         '<a href="' + tmapUrl + '" target="_blank" rel="noopener noreferrer" class="py-3 rounded-xl bg-[#FF5449] text-white border-[1.5px] border-[#141414] font-black text-sm text-center">티맵</a>' +
-        '<a href="' + googleUrl + '" target="_blank" rel="noopener noreferrer" class="py-3 rounded-xl bg-white text-[#141414] border-[1.5px] border-[#141414] font-black text-sm text-center">구글맵</a>';
+        '<a href="' + googleUrl + '" target="_blank" rel="noopener noreferrer" class="py-3 rounded-xl gm-card font-black text-sm text-center">구글맵</a>';
 
       document.getElementById('detailFavBtn').addEventListener('click', () => {
         toggleFavorite(p.id);
@@ -1119,13 +1142,13 @@
             p.detourMin = data.detourMin;
             p.detourVerified = true;
             state.quota.kakaoDirections += 1;
-            safeSet('gilmat_prod_quota', state.quota);
+            safeSet('gilmat_v5_quota', state.quota);
             renderAll();
             openDetailDrawer(p);
             showToast(p.name + ' 실측 우회시간: +' + data.detourMin + '분');
           } catch (err) {
             recalcBtn.disabled = false;
-            recalcBtn.textContent = '실제 도로 경유 우회시간 정밀 계산 (길찾기 1회)';
+            recalcBtn.textContent = '실제 도로 우회시간 정밀 계산 (무료)';
             showToast(err.message);
           }
         });
@@ -1145,109 +1168,77 @@
     }
 
     function renderQuotaUI() {
-      const gPct = Math.min(100, Math.round((state.quota.googleEnterprise / 900) * 100));
-      document.getElementById('quotaGoogleText').textContent = state.quota.googleEnterprise + ' / 900건';
-      document.getElementById('quotaGoogleBar').style.width = gPct + '%';
-      document.getElementById('quotaKakaoText').textContent = state.quota.kakaoLocal.toLocaleString() + '건';
-      document.getElementById('quotaKakaoBar').style.width = Math.min(100, Math.max(1, Math.round((state.quota.kakaoLocal / 100000) * 100))) + '%';
-      document.getElementById('quotaDirText').textContent = state.quota.kakaoDirections.toLocaleString() + '건';
-      document.getElementById('quotaTmapText').textContent = (state.quota.tmapWalk || 0).toLocaleString() + '건';
+      document.getElementById('quotaKakaoText').textContent = state.quota.kakaoLocal + '건';
+      document.getElementById('quotaDirText').textContent = state.quota.kakaoDirections + '건';
+      document.getElementById('quotaTmapText').textContent = (state.quota.tmapPedestrian || 0) + '건';
     }
 
+    let toastTimer = null;
     function showToast(msg) {
-      const el = document.getElementById('toast');
-      el.textContent = msg;
-      el.classList.remove('hidden');
-      clearTimeout(window.__toastTimer);
-      window.__toastTimer = setTimeout(() => el.classList.add('hidden'), 3000);
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.remove('hidden');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.add('hidden'), 2800);
     }
 
-    // Event Listeners
+    // --- Curated Directory (1,121 Places) ---
+    async function loadCuratedPlaces() {
+      try {
+        const resp = await fetch('/curated-places.json?v=50');
+        if (!resp.ok) return;
+        const data = await resp.json();
+        state.curatedList = Array.isArray(data.places) ? data.places : [];
+        const badgeEl = document.getElementById('curatedTotalBadge');
+        if (badgeEl) badgeEl.textContent = state.curatedList.length.toLocaleString();
+        const metaEl = document.getElementById('curatedMetaText');
+        if (metaEl && data.updated) {
+          metaEl.textContent = '총 ' + state.curatedList.length.toLocaleString() + '곳 · 업데이트 ' + data.updated + ' · 경로 탐색 자동 연동';
+        }
+      } catch {}
+    }
+
+    function renderCuratedDirectory() {
+      const listEl = document.getElementById('curatedDirList');
+      const kw = (state.curatedSearchText || '').trim().toLowerCase();
+      const filtered = state.curatedList.filter((c) => {
+        if (state.curatedFilterSrc !== 'all' && !(c.sources || []).includes(state.curatedFilterSrc)) return false;
+        if (kw) {
+          const hay = [c.name, c.region, c.area, c.cuisine, c.menu].join(' ').toLowerCase();
+          if (!hay.includes(kw)) return false;
+        }
+        return true;
+      });
+      if (filtered.length === 0) {
+        listEl.innerHTML = '<p class="text-center gm-muted py-8 font-bold">검색 결과가 없어요.</p>';
+        return;
+      }
+      const shown = filtered.slice(0, 80);
+      const tail = filtered.length > 80
+        ? '<p class="text-center gm-muted text-xs font-bold py-2">총 ' + filtered.length.toLocaleString() + '곳 중 상위 80곳 표시 · 지역/메뉴를 입력해 좁혀보세요.</p>'
+        : '';
+      listEl.innerHTML = shown.map((c) => {
+        const badges = (c.sources || []).map((s) => '<span class="px-2 py-0.5 rounded-full border font-black text-[11px] ' + getCuratedBadgeCls(s) + '">' + s + '</span>').join(' ');
+        const naverUrl = 'https://map.naver.com/p/search/' + encodeURIComponent(c.name + ' ' + (c.area || ''));
+        return '<div class="gm-card rounded-2xl p-3 flex items-center justify-between gap-2">' +
+          '<div class="min-w-0">' +
+            '<div class="flex items-center gap-1.5 flex-wrap">' + badges + '<span class="gm-muted font-bold text-xs">' + c.area + '</span></div>' +
+            '<div class="text-base font-black mt-1 truncate">' + c.name + (c.menu ? ' <span class="text-xs font-bold text-[#FF5449]">· ' + c.menu + '</span>' : '') + '</div>' +
+          '</div>' +
+          '<div class="flex items-center gap-1.5 shrink-0">' +
+            '<button type="button" data-set-dest="' + (c.name + ' ' + c.area).replace(/"/g, '&quot;') + '" class="set-curated-dest px-2.5 py-1.5 rounded-xl bg-[#141414] text-[#C8F526] font-black text-xs">도착지 B</button>' +
+            '<a href="' + naverUrl + '" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1.5 rounded-xl bg-[#03C75A] text-white font-black text-xs">네이버</a>' +
+          '</div>' +
+        '</div>';
+      }).join('') + tail;
+    }
+
+    // --- Event Wiring ---
     document.getElementById('originInput').addEventListener('focus', () => setActiveField('origin'));
     document.getElementById('destInput').addEventListener('focus', () => setActiveField('dest'));
     document.getElementById('gpsOriginBtn').addEventListener('click', () => fillWithCurrentLocation('origin'));
     document.getElementById('gpsDestBtn').addEventListener('click', () => fillWithCurrentLocation('dest'));
     document.getElementById('quickGpsChip').addEventListener('click', () => fillWithCurrentLocation(state.activeField));
-
-    document.getElementById('savedAddrChips').addEventListener('click', (e) => {
-      const btn = e.target.closest('.saved-chip');
-      if (!btn) return;
-      const addr = btn.dataset.savedAddr;
-      if (!addr) {
-        openAddrModal();
-        return;
-      }
-      fillAddressField(state.activeField, addr);
-      showToast((state.activeField === 'origin' ? '출발지(A)' : '도착지(B)') + '에 입력했습니다.');
-    });
-
-    function openAddrModal() {
-      renderFavAddrModalList();
-      document.getElementById('addrModal').classList.remove('hidden');
-      syncBodyScrollLock();
-    }
-    function closeAddrModal() {
-      document.getElementById('addrModal').classList.add('hidden');
-      syncBodyScrollLock();
-    }
-    document.getElementById('openAddrModalBtn').addEventListener('click', openAddrModal);
-    document.getElementById('closeAddrModalBtn').addEventListener('click', closeAddrModal);
-    document.getElementById('addrModal').addEventListener('click', (e) => { if (e.target.id === 'addrModal') closeAddrModal(); });
-
-    document.getElementById('saveHomeWorkBtn').addEventListener('click', () => {
-      state.savedAddrs.home = document.getElementById('homeAddrInput').value.trim();
-      state.savedAddrs.work = document.getElementById('workAddrInput').value.trim();
-      safeSet('gilmat_saved_addrs', state.savedAddrs);
-      renderSavedAddrChips();
-      showToast('집·회사 주소를 저장했습니다.');
-    });
-
-    document.getElementById('addFavAddrBtn').addEventListener('click', () => {
-      const label = document.getElementById('newFavLabelInput').value.trim();
-      const addr = document.getElementById('newFavAddrInput').value.trim();
-      if (!label || !addr) {
-        showToast('별칭과 주소를 모두 입력해 주세요.');
-        return;
-      }
-      state.savedAddrs.custom = state.savedAddrs.custom || [];
-      state.savedAddrs.custom.push({ label, addr });
-      safeSet('gilmat_saved_addrs', state.savedAddrs);
-      document.getElementById('newFavLabelInput').value = '';
-      document.getElementById('newFavAddrInput').value = '';
-      renderSavedAddrChips();
-      renderFavAddrModalList();
-      showToast("'" + label + "' 즐겨찾기 주소를 추가했습니다.");
-    });
-
-    document.getElementById('favAddrList').addEventListener('click', (e) => {
-      const btn = e.target.closest('.del-fav-addr');
-      if (!btn) return;
-      const idx = parseInt(btn.dataset.delIdx, 10);
-      state.savedAddrs.custom.splice(idx, 1);
-      safeSet('gilmat_saved_addrs', state.savedAddrs);
-      renderSavedAddrChips();
-      renderFavAddrModalList();
-    });
-
-    // Travel Mode Toggle (Car vs Walk)
-    document.querySelectorAll('.travel-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const mode = btn.dataset.travel;
-        state.travelMode = mode;
-        document.querySelectorAll('.travel-btn').forEach(b => {
-          b.className = b === btn
-            ? 'travel-btn px-3 py-1 rounded-lg font-black ' + (mode === 'walk' ? 'bg-[#C8F526] text-[#141414] border border-[#141414]' : 'bg-[#141414] text-[#C8F526]')
-            : 'travel-btn px-3 py-1 rounded-lg font-bold text-[#57534E] hover:text-[#141414]';
-        });
-        state.maxDetour = mode === 'walk' ? 8 : 15;
-        document.getElementById('detourSlider').value = state.maxDetour;
-        document.getElementById('detourValLabel').textContent = '+' + state.maxDetour + '분 이내';
-        if (mode === 'walk' && !state.hasTmap) {
-          showToast('도보 모드는 Cloudflare에 TMAP_APP_KEY를 등록하면 바로 동작합니다.');
-        }
-        renderAll();
-      });
-    });
 
     document.getElementById('swapRouteBtn').addEventListener('click', () => {
       const oIn = document.getElementById('originInput');
@@ -1257,6 +1248,78 @@
       dIn.value = tmp;
       showToast('출발지와 도착지를 바꿨어요.');
     });
+
+    document.getElementById('savedAddrChips').addEventListener('click', (e) => {
+      const btn = e.target.closest('.saved-chip');
+      if (!btn) return;
+      const addr = btn.dataset.savedAddr;
+      if (!addr) { openAddrModal(); return; }
+      fillAddressField(state.activeField, addr);
+      showToast((state.activeField === 'origin' ? '출발지(A)' : '도착지(B)') + '에 입력했어요.');
+    });
+
+    function openAddrModal() { renderFavAddrModalList(); document.getElementById('addrModal').classList.remove('hidden'); syncBodyScrollLock(); }
+    function closeAddrModal() { document.getElementById('addrModal').classList.add('hidden'); syncBodyScrollLock(); }
+    document.getElementById('openAddrModalBtn').addEventListener('click', openAddrModal);
+    document.getElementById('closeAddrModalBtn').addEventListener('click', closeAddrModal);
+    document.getElementById('addrModal').addEventListener('click', (e) => { if (e.target.id === 'addrModal') closeAddrModal(); });
+
+    document.getElementById('saveHomeWorkBtn').addEventListener('click', () => {
+      state.savedAddrs.home = document.getElementById('homeAddrInput').value.trim();
+      state.savedAddrs.work = document.getElementById('workAddrInput').value.trim();
+      safeSet('gilmat_saved_addrs', state.savedAddrs);
+      renderSavedAddrChips();
+      showToast('집·회사 주소를 저장했어요.');
+    });
+
+    document.getElementById('addFavAddrBtn').addEventListener('click', () => {
+      const label = document.getElementById('newFavLabelInput').value.trim();
+      const addr = document.getElementById('newFavAddrInput').value.trim();
+      if (!label || !addr) { showToast('별칭과 주소를 모두 입력해 주세요.'); return; }
+      state.savedAddrs.custom = state.savedAddrs.custom || [];
+      state.savedAddrs.custom.push({ label, addr });
+      safeSet('gilmat_saved_addrs', state.savedAddrs);
+      document.getElementById('newFavLabelInput').value = '';
+      document.getElementById('newFavAddrInput').value = '';
+      renderSavedAddrChips();
+      renderFavAddrModalList();
+      showToast("'" + label + "' 주소를 추가했어요.");
+    });
+
+    document.getElementById('favAddrList').addEventListener('click', (e) => {
+      const btn = e.target.closest('.del-fav-addr');
+      if (!btn) return;
+      state.savedAddrs.custom.splice(parseInt(btn.dataset.delIdx, 10), 1);
+      safeSet('gilmat_saved_addrs', state.savedAddrs);
+      renderSavedAddrChips();
+      renderFavAddrModalList();
+    });
+
+    document.querySelectorAll('.travel-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const mode = btn.dataset.travel;
+        state.travelMode = mode;
+        document.querySelectorAll('.travel-btn').forEach((b) => {
+          b.className = b === btn
+            ? 'travel-btn px-3 py-1 rounded-lg font-black bg-[#141414] text-[#C8F526]'
+            : 'travel-btn px-3 py-1 rounded-lg font-bold gm-muted';
+        });
+        state.maxDetour = mode === 'walk' ? 8 : 15;
+        document.getElementById('detourSlider').value = state.maxDetour;
+        document.getElementById('detourValLabel').textContent = '+' + state.maxDetour + '분';
+        renderAll();
+      });
+    });
+
+    document.querySelectorAll('.target-min-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.targetMin = parseInt(btn.dataset.tarm, 10) || 0;
+        document.querySelectorAll('.target-min-btn').forEach((b) => {
+          b.classList.toggle('active', b === btn);
+        });
+      });
+    });
+
     document.getElementById('scanRouteBtn').addEventListener('click', () => runLiveRouteSearch(''));
     document.getElementById('menuRouteSearchBtn').addEventListener('click', () => {
       runLiveRouteSearch(document.getElementById('filterInput').value.trim());
@@ -1270,51 +1333,29 @@
     document.getElementById('fitRouteBtn').addEventListener('click', () => {
       if (kakaoMap && routeBounds) kakaoMap.setBounds(routeBounds);
     });
-
-    document.querySelectorAll('.mapmode-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const mode = btn.dataset.mapmode;
-        state.mapMode = mode;
-        const mapEl = document.getElementById('map');
-        if (mode === 'dark') {
-          mapEl.classList.add('kakao-dark-filter');
-          if (kakaoMap) kakaoMap.setMapTypeId(kakao.maps.MapTypeId.ROADMAP);
-        } else if (mode === 'light') {
-          mapEl.classList.remove('kakao-dark-filter');
-          if (kakaoMap) kakaoMap.setMapTypeId(kakao.maps.MapTypeId.ROADMAP);
-        } else {
-          mapEl.classList.remove('kakao-dark-filter');
-          if (kakaoMap) kakaoMap.setMapTypeId(kakao.maps.MapTypeId.HYBRID);
-        }
-        document.querySelectorAll('.mapmode-btn').forEach(b => {
-          b.className = b === btn
-            ? 'mapmode-btn px-2.5 py-1 rounded-lg font-black bg-[#141414] text-[#C8F526]'
-            : 'mapmode-btn px-2.5 py-1 rounded-lg font-bold text-[#57534E] hover:text-[#141414]';
-        });
-        if (state.route) renderRouteOnMap();
-      });
+    document.querySelectorAll('.mapmode-btn').forEach((btn) => {
+      btn.addEventListener('click', () => setMapVisualMode(btn.dataset.mapmode, true));
     });
 
     document.getElementById('daySelect').addEventListener('change', (e) => { state.dayOfWeek = parseInt(e.target.value, 10); renderAll(); });
     document.getElementById('departTimeInput').addEventListener('change', (e) => { state.departTime = e.target.value || '12:00'; renderAll(); });
 
-    document.querySelectorAll('.cat-btn').forEach(btn => {
+    document.querySelectorAll('.sub-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
-        state.category = btn.dataset.cat;
-        document.querySelectorAll('.cat-btn').forEach(b => {
-          b.className = b === btn
-            ? 'cat-btn px-4 py-2 rounded-full text-sm font-black bg-[#141414] text-[#C8F526] border-[1.5px] border-[#141414] shrink-0'
-            : 'cat-btn px-4 py-2 rounded-full text-sm font-bold bg-white text-[#141414] border-[1.5px] border-[#141414]/35 hover:border-[#141414] shrink-0';
-        });
+        state.subCuisine = btn.dataset.sub;
+        document.querySelectorAll('.sub-btn').forEach((b) => b.classList.toggle('active', b === btn));
         renderAll();
       });
     });
 
+    document.getElementById('curatedOnlyBtn').addEventListener('click', (e) => {
+      state.curatedOnly = !state.curatedOnly;
+      e.currentTarget.classList.toggle('active', state.curatedOnly);
+      renderAll();
+    });
     document.getElementById('favOnlyBtn').addEventListener('click', (e) => {
       state.favOnly = !state.favOnly;
-      e.currentTarget.className = state.favOnly
-        ? 'px-4 py-2 rounded-full text-sm font-black bg-[#FF5449] text-white border-[1.5px] border-[#141414] shrink-0 inline-flex items-center gap-1'
-        : 'px-4 py-2 rounded-full text-sm font-bold bg-white text-[#141414] border-[1.5px] border-[#141414]/35 hover:border-[#141414] shrink-0 inline-flex items-center gap-1';
+      e.currentTarget.classList.toggle('active', state.favOnly);
       renderAll();
     });
 
@@ -1335,58 +1376,27 @@
     document.getElementById('sortSelect').addEventListener('change', (e) => { state.sortBy = e.target.value; renderAll(); });
     document.getElementById('detourSlider').addEventListener('input', (e) => {
       state.maxDetour = parseInt(e.target.value, 10);
-      document.getElementById('detourValLabel').textContent = '+' + state.maxDetour + '분 이내';
+      document.getElementById('detourValLabel').textContent = '+' + state.maxDetour + '분';
       renderAll();
     });
-
-    document.querySelectorAll('.rating-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        state.minRating = parseFloat(btn.dataset.rating);
-        document.querySelectorAll('.rating-btn').forEach(b => {
-          b.className = b === btn
-            ? 'rating-btn px-2 py-0.5 rounded-md font-black bg-[#141414] text-[#C8F526] border border-[#141414]'
-            : 'rating-btn px-2 py-0.5 rounded-md font-bold bg-[#FAF8F3] border border-[#141414]/30 text-[#141414]';
-        });
-        renderAll();
-      });
-    });
-
-    document.querySelectorAll('.review-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        state.minReviews = parseInt(btn.dataset.reviews, 10);
-        document.querySelectorAll('.review-btn').forEach(b => {
-          b.className = b === btn
-            ? 'review-btn px-2 py-0.5 rounded-md font-black bg-[#141414] text-[#C8F526] border border-[#141414]'
-            : 'review-btn px-2 py-0.5 rounded-md font-bold bg-[#FAF8F3] border border-[#141414]/30 text-[#141414]';
-        });
-        renderAll();
-      });
-    });
-
-    document.getElementById('openAtEtaChk').addEventListener('change', (e) => { state.openAtEta = e.target.checked; renderAll(); });
-    document.getElementById('includeUnratedChk').addEventListener('change', (e) => { state.includeUnrated = e.target.checked; renderAll(); });
     document.getElementById('excludeIcTrapChk').addEventListener('change', (e) => { state.excludeIcTrap = e.target.checked; renderAll(); });
-    document.getElementById('enrichRatingsChk').addEventListener('change', (e) => { state.enrichRatings = e.target.checked; });
     document.getElementById('showIcLayerChk').addEventListener('change', (e) => { state.showIcLayer = e.target.checked; renderRouteOnMap(); });
 
     document.getElementById('resetFiltersBtn').addEventListener('click', () => {
-      state.category = 'all'; state.filterText = ''; state.maxDetour = state.travelMode === 'walk' ? 8 : 15;
-      state.minRating = 0; state.minReviews = 0; state.openAtEta = false;
-      state.includeUnrated = true; state.excludeIcTrap = true; state.favOnly = false;
+      state.subCuisine = 'all'; state.filterText = ''; state.maxDetour = state.travelMode === 'walk' ? 8 : 15;
+      state.excludeIcTrap = true; state.favOnly = false; state.curatedOnly = false;
       filterInput.value = ''; clearFilterBtn.classList.add('hidden');
       document.getElementById('detourSlider').value = state.maxDetour;
-      document.getElementById('detourValLabel').textContent = '+' + state.maxDetour + '분 이내';
-      document.getElementById('openAtEtaChk').checked = false;
-      document.getElementById('includeUnratedChk').checked = true;
+      document.getElementById('detourValLabel').textContent = '+' + state.maxDetour + '분';
       document.getElementById('excludeIcTrapChk').checked = true;
+      document.querySelectorAll('.sub-btn').forEach((b) => b.classList.toggle('active', b.dataset.sub === 'all'));
+      document.getElementById('curatedOnlyBtn').classList.remove('active');
+      document.getElementById('favOnlyBtn').classList.remove('active');
       renderAll();
     });
 
     document.getElementById('placesList').addEventListener('click', (e) => {
-      if (e.target.closest('#emptyMenuSearchBtn')) {
-        runLiveRouteSearch(state.filterText.trim());
-        return;
-      }
+      if (e.target.closest('#emptyMenuSearchBtn')) { runLiveRouteSearch(state.filterText.trim()); return; }
       const favBtn = e.target.closest('.fav-toggle-btn');
       if (favBtn) { e.stopPropagation(); toggleFavorite(favBtn.dataset.favId); return; }
       const card = e.target.closest('.place-card');
@@ -1404,121 +1414,21 @@
     document.getElementById('doneQuotaBtn').addEventListener('click', closeQuotaModal);
     document.getElementById('quotaModal').addEventListener('click', (e) => { if (e.target.id === 'quotaModal') closeQuotaModal(); });
     document.getElementById('resetQuotaBtn').addEventListener('click', () => {
-      state.quota = { month: currentMonthKey, googleEnterprise: 0, kakaoLocal: 0, kakaoDirections: 0, tmapWalk: 0 };
-      safeSet('gilmat_prod_quota', state.quota);
+      state.quota.kakaoLocal = 0; state.quota.kakaoDirections = 0; state.quota.tmapPedestrian = 0;
+      safeSet('gilmat_v5_quota', state.quota);
       renderQuotaUI();
-      showToast('월간 쿼터 카운터를 초기화했습니다.');
+      showToast('카운터를 초기화했어요.');
     });
 
-    document.getElementById('exportJsonBtn').addEventListener('click', () => {
-      const list = getFilteredPlaces();
-      if (list.length === 0) { showToast('저장할 검색 결과가 없습니다.'); return; }
-      const blob = new Blob([JSON.stringify({ route: state.route, count: list.length, places: list }, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = 'gilmat-v31-results.json';
-      document.body.appendChild(a); a.click(); a.remove();
-      URL.revokeObjectURL(url);
-      showToast(list.length + '곳을 JSON으로 저장했습니다.');
-    });
-
-    function normalizeStoreName(str) {
-      return String(str || '').toLowerCase().replace(/\s+/g, '').replace(/(본점|1호점|지점|직영점)/g, '');
-    }
-
-    function attachCuratedBadges(places) {
-      if (!Array.isArray(state.curatedList) || state.curatedList.length === 0) return places;
-      return places.map(p => {
-        const pNorm = normalizeStoreName(p.name);
-        const pAddr = String(p.address || p.zone || '');
-        const matched = state.curatedList.find(c => {
-          const cNorm = normalizeStoreName(c.name);
-          if (!cNorm || !pNorm) return false;
-          const nameHit = pNorm === cNorm || (cNorm.length >= 3 && (pNorm.includes(cNorm) || cNorm.includes(pNorm)));
-          if (!nameHit) return false;
-          const gu = (c.area || '').split(' ')[1] || '';
-          return !gu || pAddr.includes(gu);
-        });
-        if (matched) {
-          return Object.assign({}, p, {
-            curatedSources: matched.sources || [],
-            curatedMenu: matched.menu || ''
-          });
-        }
-        return p;
-      });
-    }
-
-    function getCuratedBadgeCls(src) {
-      if (src === '최자로드') return 'text-[#141414] bg-[#FFE14D] border-[#141414]';
-      if (src === '또간집') return 'text-white bg-[#FF5449] border-[#141414]';
-      return 'text-[#141414] bg-[#C8F526] border-[#141414]';
-    }
-
-    async function loadCuratedPlaces() {
-      try {
-        const resp = await fetch('/curated-places.json?v=34');
-        if (!resp.ok) return;
-        const data = await resp.json();
-        state.curatedList = Array.isArray(data.places) ? data.places : [];
-        const metaEl = document.getElementById('curatedMetaText');
-        if (metaEl && data.updated) {
-          metaEl.textContent = '총 ' + state.curatedList.length + '곳 · 마지막 업데이트 ' + data.updated + ' · 경로 탐색 시 자동 반영';
-        }
-      } catch {}
-    }
-
-    function renderCuratedDirectory() {
-      const listEl = document.getElementById('curatedDirList');
-      const kw = (state.curatedSearchText || '').trim().toLowerCase();
-      const filtered = state.curatedList.filter(c => {
-        if (state.curatedFilterSrc !== 'all' && !(c.sources || []).includes(state.curatedFilterSrc)) return false;
-        if (kw) {
-          const hay = [c.name, c.region, c.area, c.cuisine, c.menu].join(' ').toLowerCase();
-          if (!hay.includes(kw)) return false;
-        }
-        return true;
-      });
-      if (filtered.length === 0) {
-        listEl.innerHTML = '<p class="text-center text-slate-400 py-8">검색 결과가 없습니다.</p>';
-        return;
-      }
-      listEl.innerHTML = filtered.map(c => {
-        const badges = (c.sources || []).map(s => '<span class="px-1.5 py-0.5 rounded border font-bold text-[10px] ' + getCuratedBadgeCls(s) + '">' + s + '</span>').join(' ');
-        const naverUrl = 'https://map.naver.com/p/search/' + encodeURIComponent(c.name + ' ' + (c.area || ''));
-        return '<div class="bg-white border-2 border-[#141414] rounded-2xl p-3 flex items-center justify-between gap-2">' +
-          '<div class="min-w-0">' +
-            '<div class="flex items-center gap-1.5 flex-wrap">' + badges + '<span class="text-[#57534E] font-bold text-[11px]">' + c.area + '</span></div>' +
-            '<div class="text-base font-black text-[#141414] mt-1 truncate">' + c.name + (c.menu ? ' <span class="text-xs font-bold text-[#FF5449]">· ' + c.menu + '</span>' : '') + '</div>' +
-          '</div>' +
-          '<div class="flex items-center gap-1.5 shrink-0">' +
-            '<button type="button" data-set-dest="' + (c.name + ' ' + c.area).replace(/"/g, '&quot;') + '" class="set-curated-dest px-2.5 py-1.5 rounded-xl bg-[#141414] text-[#C8F526] border border-[#141414] font-black text-[11px]">도착지 B</button>' +
-            '<a href="' + naverUrl + '" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1.5 rounded-xl bg-[#FAF8F3] text-[#141414] border-[1.5px] border-[#141414] font-black text-[11px]">네이버</a>' +
-          '</div>' +
-        '</div>';
-      }).join('');
-    }
-
-    function openCuratedModal() {
-      renderCuratedDirectory();
-      document.getElementById('curatedModal').classList.remove('hidden');
-      syncBodyScrollLock();
-    }
-    function closeCuratedModal() {
-      document.getElementById('curatedModal').classList.add('hidden');
-      syncBodyScrollLock();
-    }
+    function openCuratedModal() { renderCuratedDirectory(); document.getElementById('curatedModal').classList.remove('hidden'); syncBodyScrollLock(); }
+    function closeCuratedModal() { document.getElementById('curatedModal').classList.add('hidden'); syncBodyScrollLock(); }
     document.getElementById('openCuratedBtn').addEventListener('click', openCuratedModal);
     document.getElementById('closeCuratedBtn').addEventListener('click', closeCuratedModal);
     document.getElementById('curatedModal').addEventListener('click', (e) => { if (e.target.id === 'curatedModal') closeCuratedModal(); });
-    document.querySelectorAll('.csrc-btn').forEach(btn => {
+    document.querySelectorAll('.csrc-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         state.curatedFilterSrc = btn.dataset.csrc;
-        document.querySelectorAll('.csrc-btn').forEach(b => {
-          b.className = b === btn
-            ? 'csrc-btn px-3 py-1 rounded-full font-black bg-[#141414] text-[#C8F526] border-[1.5px] border-[#141414]'
-            : 'csrc-btn px-3 py-1 rounded-full font-bold bg-white text-[#141414] border-[1.5px] border-[#141414]/35';
-        });
+        document.querySelectorAll('.csrc-btn').forEach((b) => b.classList.toggle('active', b === btn));
         renderCuratedDirectory();
       });
     });
@@ -1531,17 +1441,11 @@
       if (!btn) return;
       document.getElementById('destInput').value = btn.dataset.setDest;
       closeCuratedModal();
-      showToast('도착지(B)에 입력했습니다.');
-    });
-    document.getElementById('curatedOnlyBtn').addEventListener('click', (e) => {
-      state.curatedOnly = !state.curatedOnly;
-      e.currentTarget.className = state.curatedOnly
-        ? 'px-4 py-2 rounded-full text-sm font-black bg-[#C8F526] text-[#141414] border-[1.5px] border-[#141414] shrink-0 inline-flex items-center gap-1'
-        : 'px-4 py-2 rounded-full text-sm font-bold bg-white text-[#141414] border-[1.5px] border-[#141414]/35 hover:border-[#141414] shrink-0 inline-flex items-center gap-1';
-      renderAll();
+      showToast('도착지(B)에 입력했어요.');
     });
 
     window.addEventListener('load', () => {
+      applyTheme();
       loadCuratedPlaces();
       if (window.lucide) lucide.createIcons();
       renderSavedAddrChips();
