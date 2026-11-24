@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0B1120">
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
-  <title>길맛 v3.0 — 카카오맵 기반 경로상 맛집·카페 실시간 탐색</title>
+  <title>길맛 v3.1 — 차량·도보 경로상 맛집·카페 탐색</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -29,7 +29,6 @@
       background-color: #0F172A;
     }
 
-    /* Kakao Map dark filter mode: invert map tiles smoothly while un-inverting our custom overlays */
     #map.kakao-dark-filter {
       filter: invert(92%) hue-rotate(180deg) brightness(95%) contrast(92%);
     }
@@ -81,65 +80,89 @@
 </head>
 <body class="min-h-screen flex flex-col bg-[#0B1120] text-slate-100">
 
-  <!-- Top Navigation & Live Search Bar (Dark Mode) -->
+  <!-- Top Navigation & Route Inputs -->
   <header class="bg-slate-900/95 backdrop-blur border-b border-slate-800 relative lg:sticky lg:top-0 z-[1000]">
-    <div class="px-3 sm:px-5 py-2.5 flex flex-wrap items-center justify-between gap-2.5">
-      <div class="flex items-center gap-2.5">
-        <div class="w-8 h-8 rounded-lg bg-amber-400 text-slate-950 flex items-center justify-center font-extrabold text-sm shadow-sm">
-          길
-        </div>
-        <div>
-          <div class="flex items-center gap-1.5">
-            <h1 class="text-base font-bold text-white tracking-tight">길맛</h1>
-            <span class="text-[11px] font-semibold px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800">v3.0 카카오맵</span>
+    <div class="px-3 sm:px-5 py-2.5 space-y-2">
+      <!-- Row 1: Brand + Car/Walk Mode + Route Inputs + Search -->
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-amber-400 text-slate-950 flex items-center justify-center font-extrabold text-sm shadow-sm">
+            길
           </div>
-          <p class="text-[11px] text-slate-400 hidden sm:block">카카오 경로·장소 + Google 평점·영업시간</p>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <h1 class="text-base font-bold text-white tracking-tight">길맛</h1>
+              <span class="text-[11px] font-semibold px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800">v3.1</span>
+            </div>
+          </div>
+          <!-- Car / Walk Mode Switch -->
+          <div class="flex items-center bg-slate-800 p-0.5 rounded-lg border border-slate-700 text-xs ml-1">
+            <button type="button" data-travel="car" class="travel-btn px-2.5 py-1 rounded-md font-semibold bg-blue-600 text-white">차량</button>
+            <button type="button" data-travel="walk" class="travel-btn px-2.5 py-1 rounded-md font-semibold text-slate-300 hover:text-white">도보</button>
+          </div>
         </div>
-      </div>
 
-      <!-- Route & Menu Search Inputs -->
-      <div class="flex flex-wrap items-center gap-1.5 flex-1 max-w-3xl">
-        <div class="flex items-center bg-slate-800 rounded-lg px-2.5 py-1.5 flex-1 min-w-[130px] border border-slate-700 focus-within:border-blue-500">
-          <span class="w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center mr-1.5 shrink-0">A</span>
-          <input id="originInput" type="text" value="서울 성북구 오패산로 46" placeholder="출발지" aria-label="출발지"
-            class="bg-transparent text-xs sm:text-sm font-medium text-slate-100 placeholder-slate-400 w-full outline-none">
+        <!-- A / B Inputs (Empty by default) + GPS + Time + Scan -->
+        <div class="flex flex-wrap items-center gap-1.5 flex-1 max-w-3xl">
+          <div id="originWrap" class="flex items-center bg-slate-800 rounded-lg px-2.5 py-1.5 flex-1 min-w-[140px] border border-blue-500/70">
+            <span class="w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center mr-1.5 shrink-0">A</span>
+            <input id="originInput" type="text" value="" placeholder="출발지 입력 또는 아래 주소 선택" aria-label="출발지"
+              class="bg-transparent text-xs sm:text-sm font-medium text-slate-100 placeholder-slate-400 w-full outline-none">
+            <button id="gpsOriginBtn" type="button" title="현위치로 출발지 입력"
+              class="ml-1 text-sky-400 hover:text-sky-300 p-0.5 rounded shrink-0">
+              <i data-lucide="locate-fixed" class="w-4 h-4"></i>
+            </button>
+          </div>
+          <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-500 shrink-0"></i>
+          <div id="destWrap" class="flex items-center bg-slate-800 rounded-lg px-2.5 py-1.5 flex-1 min-w-[140px] border border-slate-700">
+            <span class="w-4 h-4 rounded-full bg-emerald-600 text-white text-[10px] font-bold flex items-center justify-center mr-1.5 shrink-0">B</span>
+            <input id="destInput" type="text" value="" placeholder="도착지 입력 또는 아래 주소 선택" aria-label="도착지"
+              class="bg-transparent text-xs sm:text-sm font-medium text-slate-100 placeholder-slate-400 w-full outline-none">
+            <button id="gpsDestBtn" type="button" title="현위치로 도착지 입력"
+              class="ml-1 text-emerald-400 hover:text-emerald-300 p-0.5 rounded shrink-0">
+              <i data-lucide="locate-fixed" class="w-4 h-4"></i>
+            </button>
+          </div>
+          <div class="flex items-center gap-1 bg-slate-800 rounded-lg px-2 py-1.5 border border-slate-700">
+            <select id="daySelect" aria-label="출발 요일" class="bg-slate-800 text-xs font-semibold text-slate-200 outline-none cursor-pointer">
+              <option value="0">일</option>
+              <option value="1">월</option>
+              <option value="2">화</option>
+              <option value="3">수</option>
+              <option value="4">목</option>
+              <option value="5">금</option>
+              <option value="6">토</option>
+            </select>
+            <input id="departTimeInput" type="time" aria-label="출발 시각"
+              class="bg-transparent text-xs font-semibold text-slate-100 outline-none cursor-pointer">
+          </div>
+          <button id="scanRouteBtn" type="button"
+            class="bg-blue-600 hover:bg-blue-500 active:scale-[0.98] disabled:opacity-60 text-white text-xs sm:text-sm font-semibold px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 transition shadow-sm shrink-0">
+            <i data-lucide="radar" class="w-3.5 h-3.5"></i>
+            <span id="scanBtnLabel">경로 탐색</span>
+          </button>
         </div>
-        <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-500 shrink-0"></i>
-        <div class="flex items-center bg-slate-800 rounded-lg px-2.5 py-1.5 flex-1 min-w-[130px] border border-slate-700 focus-within:border-blue-500">
-          <span class="w-4 h-4 rounded-full bg-emerald-600 text-white text-[10px] font-bold flex items-center justify-center mr-1.5 shrink-0">B</span>
-          <input id="destInput" type="text" value="인천국제공항 제1여객터미널" placeholder="목적지" aria-label="목적지"
-            class="bg-transparent text-xs sm:text-sm font-medium text-slate-100 placeholder-slate-400 w-full outline-none">
-        </div>
-        <div class="flex items-center bg-slate-800 rounded-lg px-2.5 py-1.5 w-full sm:w-44 border border-slate-700 focus-within:border-blue-500">
-          <i data-lucide="utensils" class="w-3.5 h-3.5 text-slate-400 mr-1.5 shrink-0"></i>
-          <input id="routeMenuInput" type="text" placeholder="메뉴(선택: 고등어, 막국수)" aria-label="경로 검색 메뉴"
-            class="bg-transparent text-xs sm:text-sm font-medium text-slate-100 placeholder-slate-400 w-full outline-none">
-        </div>
-        <div class="flex items-center gap-1 bg-slate-800 rounded-lg px-2 py-1.5 border border-slate-700">
-          <select id="daySelect" aria-label="출발 요일" class="bg-slate-800 text-xs font-semibold text-slate-200 outline-none cursor-pointer">
-            <option value="0">일</option>
-            <option value="1">월</option>
-            <option value="2">화</option>
-            <option value="3">수</option>
-            <option value="4">목</option>
-            <option value="5">금</option>
-            <option value="6">토</option>
-          </select>
-          <input id="departTimeInput" type="time" aria-label="출발 시각"
-            class="bg-transparent text-xs font-semibold text-slate-100 outline-none cursor-pointer">
-        </div>
-        <button id="scanRouteBtn" type="button"
-          class="bg-blue-600 hover:bg-blue-500 active:scale-[0.98] disabled:opacity-60 text-white text-xs sm:text-sm font-semibold px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 transition shadow-sm shrink-0">
-          <i data-lucide="radar" class="w-3.5 h-3.5"></i>
-          <span id="scanBtnLabel">실시간 탐색</span>
+
+        <button id="openQuotaBtn" type="button"
+          class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition">
+          <i data-lucide="gauge" class="w-3.5 h-3.5"></i>
+          <span>쿼터</span>
         </button>
       </div>
 
-      <button id="openQuotaBtn" type="button"
-        class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition">
-        <i data-lucide="gauge" class="w-3.5 h-3.5"></i>
-        <span>쿼터</span>
-      </button>
+      <!-- Row 2: Quick Saved Addresses (현위치 · 집 · 회사 · 즐겨찾기 주소) -->
+      <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar text-xs">
+        <span id="targetFieldBadge" class="text-[11px] font-bold px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800 shrink-0">A 입력 중</span>
+        <button id="quickGpsChip" type="button" class="px-2.5 py-1 rounded-full bg-sky-950/70 hover:bg-sky-900/70 text-sky-300 border border-sky-800 font-semibold shrink-0 inline-flex items-center gap-1">
+          <i data-lucide="locate-fixed" class="w-3 h-3"></i>
+          <span>현위치</span>
+        </button>
+        <div id="savedAddrChips" class="flex items-center gap-1.5"></div>
+        <button id="openAddrModalBtn" type="button" class="px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-medium shrink-0 inline-flex items-center gap-1">
+          <i data-lucide="plus" class="w-3 h-3"></i>
+          <span>주소 관리</span>
+        </button>
+      </div>
     </div>
 
     <!-- Coverage Status Bar -->
@@ -147,18 +170,18 @@
       <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
         <span class="inline-flex items-center gap-1.5 font-semibold text-slate-200">
           <span id="statusDot" class="w-2 h-2 rounded-full bg-slate-500"></span>
-          <span id="coverageText">출발지·목적지를 입력하고 [실시간 탐색]을 눌러 주세요.</span>
+          <span id="coverageText">출발지(A)와 도착지(B)를 입력하고 [경로 탐색]을 눌러 주세요.</span>
         </span>
         <span id="pipelineStats" class="text-slate-400"></span>
       </div>
       <div class="flex items-center gap-3">
         <label class="inline-flex items-center gap-1.5 cursor-pointer select-none font-medium text-slate-300">
           <input id="showIcLayerChk" type="checkbox" checked class="rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500">
-          <span>IC 샘플링 반경</span>
+          <span>탐색 반경</span>
         </label>
         <button id="exportJsonBtn" type="button" class="text-blue-400 hover:text-blue-300 font-semibold inline-flex items-center gap-1">
           <i data-lucide="download" class="w-3 h-3"></i>
-          <span>JSON 저장</span>
+          <span>JSON</span>
         </button>
       </div>
     </div>
@@ -166,31 +189,27 @@
 
   <!-- Main Workspace -->
   <div class="flex-1 w-full bg-[#0B1120]">
-    <main class="flex flex-col lg:flex-row lg:h-[calc(100vh-108px)]">
+    <main class="flex flex-col lg:flex-row lg:h-[calc(100vh-142px)]">
 
       <!-- Left: Isolated Kakao Map Pane -->
       <section class="map-pane relative z-0 isolate overflow-hidden w-full lg:w-[57%] h-[350px] lg:h-full border-b lg:border-b-0 lg:border-r border-slate-800 shrink-0">
         <div id="map" class="kakao-dark-filter"></div>
 
-        <!-- Setup notice if KAKAO_JS_KEY is missing -->
         <div id="mapKeyNotice" class="hidden absolute inset-0 z-[500] bg-slate-950/92 flex items-center justify-center p-5 text-center">
           <div class="max-w-sm space-y-2.5 bg-slate-900 border border-slate-700 rounded-2xl p-5 shadow-2xl">
             <div class="text-amber-400 font-bold text-sm">카카오맵 JavaScript 키 연결 필요</div>
             <p class="text-xs text-slate-300 leading-relaxed">
-              1) 카카오디벨로퍼스 <strong>플랫폼 → Web</strong>에 현재 주소(<code>https://gilmat.pages.dev</code>)를 등록하고,<br>
-              2) Cloudflare <strong>Variables and Secrets</strong>에 <code>KAKAO_JS_KEY</code>로 JavaScript 키를 추가한 뒤 재배포해 주세요.
+              카카오디벨로퍼스 <strong>JavaScript SDK 도메인</strong>에 현재 주소를 등록하고, Cloudflare에 <code>KAKAO_JS_KEY</code>를 추가해 주세요.
             </p>
           </div>
         </div>
 
-        <!-- Legend -->
         <div class="absolute bottom-3 left-3 z-[400] bg-slate-900/90 backdrop-blur-sm border border-slate-700 rounded-lg px-2.5 py-1.5 shadow-lg flex flex-wrap items-center gap-2.5 text-[11px] font-medium text-slate-200">
           <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>음식점</span>
           <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>카페</span>
           <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-slate-500"></span>평점 미확인</span>
         </div>
 
-        <!-- Map Mode Switcher + Fit Route -->
         <div class="absolute top-3 right-3 z-[400] flex items-center gap-1.5">
           <div class="flex items-center bg-slate-900/90 border border-slate-700 rounded-lg p-0.5 text-[11px] shadow-lg">
             <button type="button" data-mapmode="dark" class="mapmode-btn px-2 py-1 rounded font-semibold bg-blue-600 text-white">다크</button>
@@ -218,21 +237,26 @@
             </button>
           </div>
 
-          <div class="flex items-center gap-2">
+          <!-- Unified Menu & Result Re-search Bar -->
+          <div class="flex items-center gap-1.5">
             <div class="relative flex-1">
               <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2"></i>
-              <input id="filterInput" type="text" placeholder="결과 내 재검색 (상호·지역·업종)"
+              <input id="filterInput" type="text" placeholder="결과 내 재검색 · 메뉴명 (예: 고등어, 막국수)"
                 class="w-full pl-8 pr-7 py-1.5 text-xs sm:text-sm bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-400 rounded-lg focus:border-blue-500 outline-none">
               <button id="clearFilterBtn" type="button" class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200">
                 <i data-lucide="x" class="w-3.5 h-3.5"></i>
               </button>
             </div>
+            <button id="menuRouteSearchBtn" type="button" title="입력한 메뉴로 경로 전체 실시간 재탐색"
+              class="px-2.5 py-1.5 text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-lg shrink-0 transition">
+              메뉴 탐색
+            </button>
             <select id="sortSelect" aria-label="정렬 기준"
-              class="text-xs font-semibold bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 outline-none cursor-pointer">
-              <option value="detour">우회시간순</option>
-              <option value="rating">Google 평점순</option>
+              class="text-xs font-semibold bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-200 outline-none cursor-pointer">
+              <option value="detour">우회순</option>
+              <option value="rating">평점순</option>
               <option value="reviews">평가수순</option>
-              <option value="progress">경로 진행순</option>
+              <option value="progress">진행순</option>
             </select>
           </div>
 
@@ -242,7 +266,7 @@
                 <span class="font-semibold text-slate-300">최대 추가 이동</span>
                 <span id="detourValLabel" class="font-bold text-blue-400">+15분 이내</span>
               </div>
-              <input id="detourSlider" type="range" min="5" max="30" step="1" value="15"
+              <input id="detourSlider" type="range" min="3" max="30" step="1" value="15"
                 class="w-full accent-blue-500 h-1.5 bg-slate-700 rounded-lg cursor-pointer">
             </div>
 
@@ -283,7 +307,7 @@
             </label>
             <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
               <input id="enrichRatingsChk" type="checkbox" checked class="rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500">
-              <span class="font-medium">Google 평점 결합</span>
+              <span class="font-medium">Google 평점</span>
             </label>
           </div>
 
@@ -295,15 +319,61 @@
 
         <div id="placesList" class="flex-1 overflow-y-auto p-2 sm:p-3 space-y-2 bg-[#0B1120]">
           <div class="text-center py-12 px-4 space-y-2">
-            <p class="text-sm font-bold text-slate-200">카카오맵 + Google 평점 탐색 준비 완료</p>
-            <p class="text-xs text-slate-400 leading-relaxed">상단에서 출발지·목적지와 원하는 메뉴(선택)를 입력하고 <strong class="text-blue-400">[실시간 탐색]</strong>을 눌러 주세요.</p>
+            <p class="text-sm font-bold text-slate-200">출발지와 도착지를 입력해 주세요</p>
+            <p class="text-xs text-slate-400 leading-relaxed">상단 <strong class="text-sky-400">현위치</strong> 버튼이나 <strong class="text-slate-200">집 · 회사 · 즐겨찾기 주소</strong>를 눌러 빠르게 채울 수 있습니다.</p>
           </div>
         </div>
       </section>
     </main>
   </div>
 
-  <!-- Place Detail Drawer (Dark Mode + Scroll Lock) -->
+  <!-- Saved Addresses Manager Modal (집 · 회사 · 즐겨찾기 주소) -->
+  <div id="addrModal" class="hidden fixed inset-0 z-[1100] bg-black/65 backdrop-blur-[2px] flex items-center justify-center p-3 overscroll-none touch-none">
+    <div class="bg-slate-900 border border-slate-700 w-full max-w-md max-h-[88vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+      <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+        <div>
+          <h2 class="text-base font-bold text-white">자주 가는 주소 관리</h2>
+          <p class="text-xs text-slate-400">집·회사·즐겨찾기 주소를 저장해 원탭으로 입력합니다.</p>
+        </div>
+        <button id="closeAddrModalBtn" type="button" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="p-4 overflow-y-auto space-y-4 text-xs overscroll-contain touch-pan-y">
+        <!-- Home & Work -->
+        <div class="space-y-2.5">
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1" for="homeAddrInput">집 주소</label>
+            <input id="homeAddrInput" type="text" placeholder="예: 서울 성북구 오패산로 46"
+              class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 outline-none focus:border-blue-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1" for="workAddrInput">회사 주소</label>
+            <input id="workAddrInput" type="text" placeholder="예: 서울 강남구 테헤란로 152"
+              class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 outline-none focus:border-blue-500">
+          </div>
+          <button id="saveHomeWorkBtn" type="button" class="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold">
+            집·회사 주소 저장
+          </button>
+        </div>
+
+        <!-- Custom Favorite Addresses -->
+        <div class="border-t border-slate-800 pt-3 space-y-2">
+          <div class="font-bold text-slate-200">즐겨찾기 주소 추가</div>
+          <div class="flex gap-1.5">
+            <input id="newFavLabelInput" type="text" placeholder="별칭 (예: 공항)"
+              class="w-24 px-2.5 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 outline-none focus:border-blue-500">
+            <input id="newFavAddrInput" type="text" placeholder="주소 또는 장소명"
+              class="flex-1 px-2.5 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 outline-none focus:border-blue-500">
+            <button id="addFavAddrBtn" type="button" class="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shrink-0">추가</button>
+          </div>
+          <div id="favAddrList" class="space-y-1.5 pt-1"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Place Detail Drawer -->
   <div id="detailModal" class="hidden fixed inset-0 z-[1100] bg-black/65 backdrop-blur-[2px] flex items-end sm:items-center justify-center sm:justify-end overscroll-none touch-none">
     <div class="bg-slate-900 border-t sm:border-t-0 sm:border-l border-slate-700 w-full sm:w-[430px] max-h-[88vh] sm:h-full sm:max-h-full rounded-t-2xl sm:rounded-none shadow-2xl flex flex-col overflow-hidden">
       <div class="p-4 border-b border-slate-800 flex items-start justify-between gap-3">
@@ -321,7 +391,7 @@
       </div>
       <div id="detailBody" class="p-4 overflow-y-auto flex-1 space-y-4 text-sm overscroll-contain touch-pan-y"></div>
       <div class="p-3.5 border-t border-slate-800 bg-slate-950 space-y-2">
-        <div class="text-[11px] font-semibold text-slate-400">내비게이션 원탭 경유지·목적지 전송</div>
+        <div class="text-[11px] font-semibold text-slate-400">지도 보기 및 원탭 내비게이션</div>
         <div id="detailNavActions" class="grid grid-cols-4 gap-1.5"></div>
       </div>
     </div>
@@ -333,7 +403,7 @@
       <div class="p-4 border-b border-slate-800 flex items-center justify-between">
         <div>
           <h2 class="text-base font-bold text-white">월 0원 무료 쿼터 모니터</h2>
-          <p class="text-xs text-slate-400">API 키는 Cloudflare 서버 환경변수에 안전 보관됩니다.</p>
+          <p class="text-xs text-slate-400">API 키는 Cloudflare 환경변수에 안전 보관됩니다.</p>
         </div>
         <button id="closeQuotaBtn" type="button" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800">
           <i data-lucide="x" class="w-5 h-5"></i>
@@ -359,15 +429,17 @@
               <div id="quotaKakaoBar" class="h-full bg-emerald-500 transition-all" style="width: 1%"></div>
             </div>
           </div>
-          <div>
-            <div class="flex justify-between">
-              <span class="font-medium text-slate-300">카카오모빌리티 길찾기 호출</span>
-              <span id="quotaDirText" class="font-mono font-bold text-slate-200">0건</span>
-            </div>
+          <div class="flex justify-between">
+            <span class="font-medium text-slate-300">차량 길찾기 (카카오)</span>
+            <span id="quotaDirText" class="font-mono font-bold text-slate-200">0건</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="font-medium text-slate-300">도보 길찾기 (TMAP · 일 1,000건 무료)</span>
+            <span id="quotaTmapText" class="font-mono font-bold text-sky-400">0건</span>
           </div>
         </div>
         <div class="flex items-center justify-between pt-1">
-          <button id="resetQuotaBtn" type="button" class="text-slate-400 hover:text-blue-400 font-semibold">이번 달 카운터 초기화</button>
+          <button id="resetQuotaBtn" type="button" class="text-slate-400 hover:text-blue-400 font-semibold">카운터 초기화</button>
           <button id="doneQuotaBtn" type="button" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg">확인</button>
         </div>
       </div>
@@ -386,15 +458,19 @@
 
     const now = new Date();
     const currentMonthKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
-    const storedQuota = safeGet('gilmat_prod_quota', { month: currentMonthKey, googleEnterprise: 0, kakaoLocal: 0, kakaoDirections: 0 });
+    const storedQuota = safeGet('gilmat_prod_quota', { month: currentMonthKey, googleEnterprise: 0, kakaoLocal: 0, kakaoDirections: 0, tmapWalk: 0 });
     if (storedQuota.month !== currentMonthKey) {
       storedQuota.month = currentMonthKey;
       storedQuota.googleEnterprise = 0;
       storedQuota.kakaoLocal = 0;
       storedQuota.kakaoDirections = 0;
+      storedQuota.tmapWalk = 0;
     }
 
     const state = {
+      travelMode: 'car',
+      activeField: 'origin',
+      hasTmap: false,
       route: null,
       samplingNodes: [],
       places: [],
@@ -416,13 +492,13 @@
       loading: false,
       mapMode: 'dark',
       favorites: safeGet('gilmat_prod_favs', []),
+      savedAddrs: safeGet('gilmat_saved_addrs', { home: '', work: '', custom: [] }),
       quota: storedQuota
     };
 
     document.getElementById('daySelect').value = String(state.dayOfWeek);
     document.getElementById('departTimeInput').value = state.departTime;
 
-    // Kakao Map handles
     let kakaoMap = null;
     let routePolylineObj = null;
     let endpointOverlays = [];
@@ -434,6 +510,7 @@
       try {
         const resp = await fetch('/api/config');
         const cfg = await resp.json();
+        state.hasTmap = Boolean(cfg && cfg.hasTmap);
         if (!cfg || !cfg.kakaoJsKey) {
           document.getElementById('mapKeyNotice').classList.remove('hidden');
           return;
@@ -448,8 +525,8 @@
         window.kakao.maps.load(() => {
           const container = document.getElementById('map');
           kakaoMap = new kakao.maps.Map(container, {
-            center: new kakao.maps.LatLng(37.54, 126.85),
-            level: 9
+            center: new kakao.maps.LatLng(37.5665, 126.9780),
+            level: 8
           });
           const zoomControl = new kakao.maps.ZoomControl();
           kakaoMap.addControl(zoomControl, kakao.maps.ControlPosition.LEFT);
@@ -461,6 +538,105 @@
       } catch (e) {
         document.getElementById('mapKeyNotice').classList.remove('hidden');
       }
+    }
+
+    // Active Field (A or B) indicator for quick chips
+    function setActiveField(field) {
+      state.activeField = field;
+      const badge = document.getElementById('targetFieldBadge');
+      const oWrap = document.getElementById('originWrap');
+      const dWrap = document.getElementById('destWrap');
+      if (field === 'origin') {
+        badge.textContent = 'A 입력 중';
+        badge.className = 'text-[11px] font-bold px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800 shrink-0';
+        oWrap.className = 'flex items-center bg-slate-800 rounded-lg px-2.5 py-1.5 flex-1 min-w-[140px] border border-blue-500/80';
+        dWrap.className = 'flex items-center bg-slate-800 rounded-lg px-2.5 py-1.5 flex-1 min-w-[140px] border border-slate-700';
+      } else {
+        badge.textContent = 'B 입력 중';
+        badge.className = 'text-[11px] font-bold px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 shrink-0';
+        oWrap.className = 'flex items-center bg-slate-800 rounded-lg px-2.5 py-1.5 flex-1 min-w-[140px] border border-slate-700';
+        dWrap.className = 'flex items-center bg-slate-800 rounded-lg px-2.5 py-1.5 flex-1 min-w-[140px] border border-emerald-500/80';
+      }
+    }
+
+    function fillAddressField(field, addrText) {
+      if (field === 'origin') {
+        document.getElementById('originInput').value = addrText;
+        if (!document.getElementById('destInput').value.trim()) setActiveField('dest');
+      } else {
+        document.getElementById('destInput').value = addrText;
+      }
+    }
+
+    // GPS Current Location -> Reverse Geocode
+    function fillWithCurrentLocation(targetField) {
+      if (!navigator.geolocation) {
+        showToast('이 브라우저에서는 위치 기능을 지원하지 않습니다.');
+        return;
+      }
+      showToast('현위치를 가져오는 중...');
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          try {
+            const resp = await fetch('/api/reverse-geocode', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ lat, lng })
+            });
+            const data = await resp.json();
+            const addr = (resp.ok && data && data.address) ? data.address : (lat.toFixed(5) + ', ' + lng.toFixed(5));
+            fillAddressField(targetField, addr);
+            if (kakaoMap) {
+              kakaoMap.panTo(new kakao.maps.LatLng(lat, lng));
+            }
+            showToast((targetField === 'origin' ? '출발지(A)' : '도착지(B)') + '에 현위치를 입력했습니다.');
+          } catch {
+            showToast('현위치 주소 변환에 실패했습니다.');
+          }
+        },
+        () => {
+          showToast('위치 권한이 거부되었거나 현위치를 확인할 수 없습니다.');
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    }
+
+    // Saved Addresses Chips
+    function renderSavedAddrChips() {
+      const container = document.getElementById('savedAddrChips');
+      const chips = [];
+      chips.push({ key: 'home', label: '집', addr: state.savedAddrs.home || '' });
+      chips.push({ key: 'work', label: '회사', addr: state.savedAddrs.work || '' });
+      (state.savedAddrs.custom || []).forEach((item, idx) => {
+        chips.push({ key: 'custom_' + idx, label: item.label, addr: item.addr });
+      });
+
+      container.innerHTML = chips.map(c => {
+        const isSet = Boolean(c.addr);
+        return '<button type="button" data-saved-key="' + c.key + '" data-saved-addr="' + (c.addr || '').replace(/"/g, '&quot;') + '" ' +
+          'class="saved-chip px-2.5 py-1 rounded-full font-semibold shrink-0 border transition ' +
+          (isSet ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-600' : 'bg-slate-900 hover:bg-slate-800 text-slate-500 border-dashed border-slate-700') + '">' +
+          c.label + (isSet ? '' : ' +') + '</button>';
+      }).join('');
+    }
+
+    function renderFavAddrModalList() {
+      document.getElementById('homeAddrInput').value = state.savedAddrs.home || '';
+      document.getElementById('workAddrInput').value = state.savedAddrs.work || '';
+      const listEl = document.getElementById('favAddrList');
+      const items = state.savedAddrs.custom || [];
+      if (items.length === 0) {
+        listEl.innerHTML = '<p class="text-slate-500 text-[11px] py-1">저장된 즐겨찾기 주소가 없습니다.</p>';
+        return;
+      }
+      listEl.innerHTML = items.map((item, idx) =>
+        '<div class="flex items-center justify-between gap-2 bg-slate-800/80 border border-slate-700 rounded-lg px-2.5 py-2">' +
+          '<div class="min-w-0"><span class="font-bold text-slate-200 mr-1.5">' + item.label + '</span><span class="text-slate-400 truncate">' + item.addr + '</span></div>' +
+          '<button type="button" data-del-idx="' + idx + '" class="del-fav-addr text-rose-400 hover:text-rose-300 font-semibold shrink-0">삭제</button>' +
+        '</div>'
+      ).join('');
     }
 
     function parseTimeToMin(hhmm) {
@@ -539,7 +715,6 @@
 
     function renderRouteOnMap() {
       if (!kakaoMap || !state.route) return;
-
       if (routePolylineObj) routePolylineObj.setMap(null);
       clearMapOverlays(endpointOverlays);
       clearMapOverlays(icCircles);
@@ -555,9 +730,9 @@
       routePolylineObj = new kakao.maps.Polyline({
         path,
         strokeWeight: 5,
-        strokeColor: state.mapMode === 'light' ? '#1D4ED8' : '#38BDF8',
+        strokeColor: state.route.mode === 'walk' ? '#10B981' : (state.mapMode === 'light' ? '#1D4ED8' : '#38BDF8'),
         strokeOpacity: 0.92,
-        strokeStyle: 'solid'
+        strokeStyle: state.route.mode === 'walk' ? 'shortdash' : 'solid'
       });
       routePolylineObj.setMap(kakaoMap);
 
@@ -567,9 +742,7 @@
       startEl.textContent = 'A';
       const startOv = new kakao.maps.CustomOverlay({
         position: new kakao.maps.LatLng(state.route.origin.lat, state.route.origin.lng),
-        content: startEl,
-        yAnchor: 0.5,
-        zIndex: 50
+        content: startEl, yAnchor: 0.5, zIndex: 50
       });
       startOv.setMap(kakaoMap);
       endpointOverlays.push(startOv);
@@ -580,9 +753,7 @@
       endEl.textContent = 'B';
       const endOv = new kakao.maps.CustomOverlay({
         position: new kakao.maps.LatLng(state.route.destination.lat, state.route.destination.lng),
-        content: endEl,
-        yAnchor: 0.5,
-        zIndex: 50
+        content: endEl, yAnchor: 0.5, zIndex: 50
       });
       endOv.setMap(kakaoMap);
       endpointOverlays.push(endOv);
@@ -593,10 +764,10 @@
             center: new kakao.maps.LatLng(node.lat, node.lng),
             radius: node.radius,
             strokeWeight: 1,
-            strokeColor: node.type === 'ic' ? '#10B981' : '#3B82F6',
+            strokeColor: node.type === 'walk' ? '#10B981' : (node.type === 'ic' ? '#34D399' : '#3B82F6'),
             strokeOpacity: 0.6,
             strokeStyle: 'dashed',
-            fillColor: node.type === 'ic' ? '#10B981' : '#3B82F6',
+            fillColor: node.type === 'walk' ? '#10B981' : '#3B82F6',
             fillOpacity: 0.08
           });
           c.setMap(kakaoMap);
@@ -628,9 +799,7 @@
 
           const ov = new kakao.maps.CustomOverlay({
             position: new kakao.maps.LatLng(p.lat, p.lng),
-            content: el,
-            yAnchor: 0.5,
-            zIndex: isSel ? 90 : 20
+            content: el, yAnchor: 0.5, zIndex: isSel ? 90 : 20
           });
           ov.setMap(kakaoMap);
           placeOverlays.push(ov);
@@ -640,7 +809,12 @@
       const listEl = document.getElementById('placesList');
       if (state.places.length === 0) return;
       if (filtered.length === 0) {
-        listEl.innerHTML = '<div class="text-center py-12 px-4"><p class="text-sm font-bold text-slate-200">현재 필터 조건에 맞는 장소가 없습니다.</p><p class="text-xs text-slate-400 mt-1">우회시간·평점·영업 중 필터를 완화하거나 상단 메뉴 키워드를 변경해 다시 탐색해 보세요.</p></div>';
+        const kw = state.filterText.trim();
+        listEl.innerHTML = '<div class="text-center py-10 px-4 space-y-2.5">' +
+          '<p class="text-sm font-bold text-slate-200">' + (kw ? ("현재 목록에 '" + kw + "' 결과가 없습니다.") : '현재 필터 조건에 맞는 장소가 없습니다.') + '</p>' +
+          (kw ? '<button type="button" id="emptyMenuSearchBtn" class="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold">경로 전체에서 \'' + kw + '\' 실시간 검색</button>'
+              : '<p class="text-xs text-slate-400">우회시간·평점·영업 중 필터를 완화해 보세요.</p>') +
+        '</div>';
       } else {
         listEl.innerHTML = filtered.map(p => {
           const meta = catMeta(p.category);
@@ -686,13 +860,13 @@
       renderQuotaUI();
     }
 
-    async function runLiveRouteSearch() {
+    async function runLiveRouteSearch(menuKeyword) {
       const origin = document.getElementById('originInput').value.trim();
       const destination = document.getElementById('destInput').value.trim();
-      const keyword = document.getElementById('routeMenuInput').value.trim();
+      const keyword = (typeof menuKeyword === 'string' ? menuKeyword : '').trim();
 
       if (!origin || !destination) {
-        showToast('출발지와 목적지를 모두 입력해 주세요.');
+        showToast('출발지(A)와 도착지(B)를 모두 입력해 주세요.');
         return;
       }
 
@@ -702,7 +876,8 @@
       btn.disabled = true;
       label.textContent = '탐색 중...';
       document.getElementById('statusDot').className = 'w-2 h-2 rounded-full bg-amber-400 animate-pulse';
-      document.getElementById('coverageText').textContent = '카카오 경로 계산 및 음식점·카페 수집 중...';
+      document.getElementById('coverageText').textContent =
+        (state.travelMode === 'walk' ? 'TMAP 도보 경로' : '카카오 차량 경로') + ' 계산 및 음식점·카페 수집 중...';
 
       try {
         const resp = await fetch('/api/route-search', {
@@ -712,6 +887,7 @@
             origin,
             destination,
             keyword,
+            mode: state.travelMode,
             enrichRatings: state.enrichRatings && state.quota.googleEnterprise < 900
           })
         });
@@ -727,18 +903,27 @@
         state.places = data.places || [];
         state.selectedId = null;
 
+        // If searched by menu keyword directly, clear local text filter so all API results show immediately
+        if (keyword) {
+          state.filterText = '';
+          document.getElementById('filterInput').value = '';
+          document.getElementById('clearFilterBtn').classList.add('hidden');
+        }
+
         state.quota.googleEnterprise += (data.apiCalls && data.apiCalls.googleEnterprise) || 0;
         state.quota.kakaoLocal += (data.apiCalls && data.apiCalls.kakaoLocal) || 0;
         state.quota.kakaoDirections += (data.apiCalls && data.apiCalls.kakaoDirections) || 0;
+        state.quota.tmapWalk += (data.apiCalls && data.apiCalls.tmapWalk) || 0;
         safeSet('gilmat_prod_quota', state.quota);
 
+        const modeLabel = data.route.mode === 'walk' ? '도보' : '차량';
         document.getElementById('statusDot').className = 'w-2 h-2 rounded-full bg-emerald-400';
         document.getElementById('coverageText').textContent =
-          '구간 ' + data.coverage.completedNodes + '/' + data.coverage.totalNodes + ' 완료 · ' + data.route.distanceKm + 'km (약 ' + data.route.durationMin + '분)';
+          modeLabel + ' ' + data.route.distanceKm + 'km (약 ' + data.route.durationMin + '분) · 구간 ' + data.coverage.completedNodes + '/' + data.coverage.totalNodes;
 
         const errNote = (data.debug && data.debug.googleError) ? (' · Google 오류(' + data.debug.googleError + ')') : '';
         document.getElementById('pipelineStats').textContent =
-          '음식점 ' + (data.coverage.foodCount || 0) + ' · 카페 ' + (data.coverage.cafeCount || 0) + ' · 평점 매칭 ' + data.coverage.ratingMatched + '곳' + errNote;
+          (keyword ? ("'" + keyword + "' ") : '') + '음식점 ' + (data.coverage.foodCount || 0) + ' · 카페 ' + (data.coverage.cafeCount || 0) + ' · 평점 ' + data.coverage.ratingMatched + '곳' + errNote;
 
         renderRouteOnMap();
         renderAll();
@@ -751,7 +936,7 @@
       } finally {
         state.loading = false;
         btn.disabled = false;
-        label.textContent = '실시간 탐색';
+        label.textContent = '경로 탐색';
       }
     }
 
@@ -761,7 +946,8 @@
     function syncBodyScrollLock() {
       const detailOpen = !document.getElementById('detailModal').classList.contains('hidden');
       const quotaOpen = !document.getElementById('quotaModal').classList.contains('hidden');
-      const shouldLock = detailOpen || quotaOpen;
+      const addrOpen = !document.getElementById('addrModal').classList.contains('hidden');
+      const shouldLock = detailOpen || quotaOpen || addrOpen;
       if (shouldLock && !isBodyLocked) {
         savedScrollY = window.scrollY || 0;
         document.documentElement.style.overflow = 'hidden';
@@ -809,12 +995,18 @@
       document.getElementById('detailName').textContent = p.name;
       document.getElementById('detailAddr').textContent = p.address;
 
+      const naverQuery = encodeURIComponent(p.name + ' ' + (p.zone || ''));
+      const naverMapUrl = 'https://map.naver.com/p/search/' + naverQuery;
+
       const ratingHtml = p.rating !== null
         ? '<div class="text-xl font-bold text-amber-400">Google ' + p.rating.toFixed(1) + '<span class="text-xs font-medium text-slate-400 ml-1">/ 5.0 · ' + p.reviews.toLocaleString() + '명 평가</span></div>'
         : '<div class="text-sm font-bold text-slate-300">Google 평점 미확인 <span class="text-xs font-normal text-slate-500">(카카오 로컬 수집)</span></div>';
 
       const tagsHtml = (p.tags || []).map(t => '<span class="bg-slate-800 text-slate-300 px-2 py-0.5 rounded">' + t + '</span>').join('');
+      const showRecalc = state.route && state.route.mode === 'car';
+
       document.getElementById('detailBody').innerHTML =
+        '<a href="' + naverMapUrl + '" target="_blank" rel="noopener noreferrer" class="block w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold text-center shadow-sm transition">네이버지도에서 사진·블로그 리뷰 바로 보기</a>' +
         '<div class="grid grid-cols-2 gap-2.5">' +
           '<div class="p-3 rounded-xl bg-blue-950/60 border border-blue-900">' +
             '<div class="text-[11px] font-semibold text-slate-400">' + (p.detourVerified ? '실측 경유 추가 이동' : '추정 경유 추가 이동') + '</div>' +
@@ -830,7 +1022,7 @@
         '<div class="p-3 rounded-xl bg-slate-800/80 border border-slate-700 space-y-1.5">' +
           '<div class="text-[11px] font-semibold text-slate-400">원본 평점 및 도로 실측</div>' +
           ratingHtml +
-          '<button id="recalcDetourBtn" type="button" class="mt-2 w-full py-1.5 text-xs font-semibold text-blue-300 bg-slate-900 border border-blue-800 hover:bg-blue-950 rounded-lg transition">실제 도로 경유 우회시간 정밀 계산 (길찾기 1회)</button>' +
+          (showRecalc ? '<button id="recalcDetourBtn" type="button" class="mt-2 w-full py-1.5 text-xs font-semibold text-blue-300 bg-slate-900 border border-blue-800 hover:bg-blue-950 rounded-lg transition">실제 도로 경유 우회시간 정밀 계산 (길찾기 1회)</button>' : '') +
         '</div>' +
         (p.icTrap ? '<div class="p-3 rounded-xl bg-rose-950/60 border border-rose-800 text-xs text-rose-200"><strong>고속도로 IC 우회 주의:</strong> ' + p.icTrapReason + '</div>' : '') +
         '<div class="space-y-2.5 text-xs">' +
@@ -847,13 +1039,12 @@
       const encName = encodeURIComponent(p.name);
       const kakaoUrl = p.kakaoUrl || ('https://map.kakao.com/link/to/' + encName + ',' + p.lat + ',' + p.lng);
       const tmapUrl = 'tmap://route?goalname=' + encName + '&goalx=' + p.lng + '&goaly=' + p.lat;
-      const naverUrl = 'https://map.naver.com/v5/search/' + encName;
       const googleUrl = p.googleMapsUri || ('https://www.google.com/maps/search/?api=1&query=' + encName);
 
       document.getElementById('detailNavActions').innerHTML =
+        '<a href="' + naverMapUrl + '" target="_blank" rel="noopener noreferrer" class="py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs text-center transition">네이버맵</a>' +
         '<a href="' + kakaoUrl + '" target="_blank" rel="noopener noreferrer" class="py-2 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs text-center transition">카카오맵</a>' +
         '<a href="' + tmapUrl + '" target="_blank" rel="noopener noreferrer" class="py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs text-center transition">티맵</a>' +
-        '<a href="' + naverUrl + '" target="_blank" rel="noopener noreferrer" class="py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs text-center transition">네이버</a>' +
         '<a href="' + googleUrl + '" target="_blank" rel="noopener noreferrer" class="py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs text-center transition">구글맵</a>';
 
       document.getElementById('detailFavBtn').addEventListener('click', () => {
@@ -861,37 +1052,38 @@
         openDetailDrawer(p);
       });
 
-      document.getElementById('recalcDetourBtn').addEventListener('click', async () => {
-        if (!state.route) return;
-        const btn = document.getElementById('recalcDetourBtn');
-        btn.disabled = true;
-        btn.textContent = '실제 도로 경로 계산 중...';
-        try {
-          const resp = await fetch('/api/detour', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              origin: state.route.origin,
-              destination: state.route.destination,
-              waypoint: { lat: p.lat, lng: p.lng },
-              baseDurationSec: state.route.durationSec
-            })
-          });
-          const data = await resp.json();
-          if (!resp.ok) throw new Error(data.error || '계산 실패');
-          p.detourMin = data.detourMin;
-          p.detourVerified = true;
-          state.quota.kakaoDirections += 1;
-          safeSet('gilmat_prod_quota', state.quota);
-          renderAll();
-          openDetailDrawer(p);
-          showToast(p.name + ' 실측 우회시간: +' + data.detourMin + '분 (총 ' + data.viaDurationMin + '분)');
-        } catch (err) {
-          btn.disabled = false;
-          btn.textContent = '실제 도로 경유 우회시간 정밀 계산 (길찾기 1회)';
-          showToast(err.message);
-        }
-      });
+      const recalcBtn = document.getElementById('recalcDetourBtn');
+      if (recalcBtn) {
+        recalcBtn.addEventListener('click', async () => {
+          recalcBtn.disabled = true;
+          recalcBtn.textContent = '실제 도로 경로 계산 중...';
+          try {
+            const resp = await fetch('/api/detour', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                origin: state.route.origin,
+                destination: state.route.destination,
+                waypoint: { lat: p.lat, lng: p.lng },
+                baseDurationSec: state.route.durationSec
+              })
+            });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.error || '계산 실패');
+            p.detourMin = data.detourMin;
+            p.detourVerified = true;
+            state.quota.kakaoDirections += 1;
+            safeSet('gilmat_prod_quota', state.quota);
+            renderAll();
+            openDetailDrawer(p);
+            showToast(p.name + ' 실측 우회시간: +' + data.detourMin + '분');
+          } catch (err) {
+            recalcBtn.disabled = false;
+            recalcBtn.textContent = '실제 도로 경유 우회시간 정밀 계산 (길찾기 1회)';
+            showToast(err.message);
+          }
+        });
+      }
 
       document.getElementById('detailModal').classList.remove('hidden');
       document.getElementById('detailBody').scrollTop = 0;
@@ -913,6 +1105,7 @@
       document.getElementById('quotaKakaoText').textContent = state.quota.kakaoLocal.toLocaleString() + '건';
       document.getElementById('quotaKakaoBar').style.width = Math.min(100, Math.max(1, Math.round((state.quota.kakaoLocal / 100000) * 100))) + '%';
       document.getElementById('quotaDirText').textContent = state.quota.kakaoDirections.toLocaleString() + '건';
+      document.getElementById('quotaTmapText').textContent = (state.quota.tmapWalk || 0).toLocaleString() + '건';
     }
 
     function showToast(msg) {
@@ -924,10 +1117,102 @@
     }
 
     // Event Listeners
-    document.getElementById('scanRouteBtn').addEventListener('click', runLiveRouteSearch);
-    document.getElementById('routeMenuInput').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') runLiveRouteSearch();
+    document.getElementById('originInput').addEventListener('focus', () => setActiveField('origin'));
+    document.getElementById('destInput').addEventListener('focus', () => setActiveField('dest'));
+    document.getElementById('gpsOriginBtn').addEventListener('click', () => fillWithCurrentLocation('origin'));
+    document.getElementById('gpsDestBtn').addEventListener('click', () => fillWithCurrentLocation('dest'));
+    document.getElementById('quickGpsChip').addEventListener('click', () => fillWithCurrentLocation(state.activeField));
+
+    document.getElementById('savedAddrChips').addEventListener('click', (e) => {
+      const btn = e.target.closest('.saved-chip');
+      if (!btn) return;
+      const addr = btn.dataset.savedAddr;
+      if (!addr) {
+        openAddrModal();
+        return;
+      }
+      fillAddressField(state.activeField, addr);
+      showToast((state.activeField === 'origin' ? '출발지(A)' : '도착지(B)') + '에 입력했습니다.');
     });
+
+    function openAddrModal() {
+      renderFavAddrModalList();
+      document.getElementById('addrModal').classList.remove('hidden');
+      syncBodyScrollLock();
+    }
+    function closeAddrModal() {
+      document.getElementById('addrModal').classList.add('hidden');
+      syncBodyScrollLock();
+    }
+    document.getElementById('openAddrModalBtn').addEventListener('click', openAddrModal);
+    document.getElementById('closeAddrModalBtn').addEventListener('click', closeAddrModal);
+    document.getElementById('addrModal').addEventListener('click', (e) => { if (e.target.id === 'addrModal') closeAddrModal(); });
+
+    document.getElementById('saveHomeWorkBtn').addEventListener('click', () => {
+      state.savedAddrs.home = document.getElementById('homeAddrInput').value.trim();
+      state.savedAddrs.work = document.getElementById('workAddrInput').value.trim();
+      safeSet('gilmat_saved_addrs', state.savedAddrs);
+      renderSavedAddrChips();
+      showToast('집·회사 주소를 저장했습니다.');
+    });
+
+    document.getElementById('addFavAddrBtn').addEventListener('click', () => {
+      const label = document.getElementById('newFavLabelInput').value.trim();
+      const addr = document.getElementById('newFavAddrInput').value.trim();
+      if (!label || !addr) {
+        showToast('별칭과 주소를 모두 입력해 주세요.');
+        return;
+      }
+      state.savedAddrs.custom = state.savedAddrs.custom || [];
+      state.savedAddrs.custom.push({ label, addr });
+      safeSet('gilmat_saved_addrs', state.savedAddrs);
+      document.getElementById('newFavLabelInput').value = '';
+      document.getElementById('newFavAddrInput').value = '';
+      renderSavedAddrChips();
+      renderFavAddrModalList();
+      showToast("'" + label + "' 즐겨찾기 주소를 추가했습니다.");
+    });
+
+    document.getElementById('favAddrList').addEventListener('click', (e) => {
+      const btn = e.target.closest('.del-fav-addr');
+      if (!btn) return;
+      const idx = parseInt(btn.dataset.delIdx, 10);
+      state.savedAddrs.custom.splice(idx, 1);
+      safeSet('gilmat_saved_addrs', state.savedAddrs);
+      renderSavedAddrChips();
+      renderFavAddrModalList();
+    });
+
+    // Travel Mode Toggle (Car vs Walk)
+    document.querySelectorAll('.travel-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const mode = btn.dataset.travel;
+        state.travelMode = mode;
+        document.querySelectorAll('.travel-btn').forEach(b => {
+          b.className = b === btn
+            ? 'travel-btn px-2.5 py-1 rounded-md font-semibold ' + (mode === 'walk' ? 'bg-emerald-600 text-white' : 'bg-blue-600 text-white')
+            : 'travel-btn px-2.5 py-1 rounded-md font-semibold text-slate-300 hover:text-white';
+        });
+        state.maxDetour = mode === 'walk' ? 8 : 15;
+        document.getElementById('detourSlider').value = state.maxDetour;
+        document.getElementById('detourValLabel').textContent = '+' + state.maxDetour + '분 이내';
+        if (mode === 'walk' && !state.hasTmap) {
+          showToast('도보 모드는 Cloudflare에 TMAP_APP_KEY를 등록하면 바로 동작합니다.');
+        }
+        renderAll();
+      });
+    });
+
+    document.getElementById('scanRouteBtn').addEventListener('click', () => runLiveRouteSearch(''));
+    document.getElementById('menuRouteSearchBtn').addEventListener('click', () => {
+      runLiveRouteSearch(document.getElementById('filterInput').value.trim());
+    });
+    document.getElementById('filterInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && state.places.length > 0 && getFilteredPlaces().length === 0) {
+        runLiveRouteSearch(e.target.value.trim());
+      }
+    });
+
     document.getElementById('fitRouteBtn').addEventListener('click', () => {
       if (kakaoMap && routeBounds) kakaoMap.setBounds(routeBounds);
     });
@@ -1031,12 +1316,12 @@
     document.getElementById('showIcLayerChk').addEventListener('change', (e) => { state.showIcLayer = e.target.checked; renderRouteOnMap(); });
 
     document.getElementById('resetFiltersBtn').addEventListener('click', () => {
-      state.category = 'all'; state.filterText = ''; state.maxDetour = 15;
+      state.category = 'all'; state.filterText = ''; state.maxDetour = state.travelMode === 'walk' ? 8 : 15;
       state.minRating = 0; state.minReviews = 0; state.openAtEta = false;
       state.includeUnrated = true; state.excludeIcTrap = true; state.favOnly = false;
       filterInput.value = ''; clearFilterBtn.classList.add('hidden');
-      document.getElementById('detourSlider').value = 15;
-      document.getElementById('detourValLabel').textContent = '+15분 이내';
+      document.getElementById('detourSlider').value = state.maxDetour;
+      document.getElementById('detourValLabel').textContent = '+' + state.maxDetour + '분 이내';
       document.getElementById('openAtEtaChk').checked = false;
       document.getElementById('includeUnratedChk').checked = true;
       document.getElementById('excludeIcTrapChk').checked = true;
@@ -1044,6 +1329,10 @@
     });
 
     document.getElementById('placesList').addEventListener('click', (e) => {
+      if (e.target.closest('#emptyMenuSearchBtn')) {
+        runLiveRouteSearch(state.filterText.trim());
+        return;
+      }
       const favBtn = e.target.closest('.fav-toggle-btn');
       if (favBtn) { e.stopPropagation(); toggleFavorite(favBtn.dataset.favId); return; }
       const card = e.target.closest('.place-card');
@@ -1061,7 +1350,7 @@
     document.getElementById('doneQuotaBtn').addEventListener('click', closeQuotaModal);
     document.getElementById('quotaModal').addEventListener('click', (e) => { if (e.target.id === 'quotaModal') closeQuotaModal(); });
     document.getElementById('resetQuotaBtn').addEventListener('click', () => {
-      state.quota = { month: currentMonthKey, googleEnterprise: 0, kakaoLocal: 0, kakaoDirections: 0 };
+      state.quota = { month: currentMonthKey, googleEnterprise: 0, kakaoLocal: 0, kakaoDirections: 0, tmapWalk: 0 };
       safeSet('gilmat_prod_quota', state.quota);
       renderQuotaUI();
       showToast('월간 쿼터 카운터를 초기화했습니다.');
@@ -1073,7 +1362,7 @@
       const blob = new Blob([JSON.stringify({ route: state.route, count: list.length, places: list }, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url; a.download = 'gilmat-kakao-results.json';
+      a.href = url; a.download = 'gilmat-v31-results.json';
       document.body.appendChild(a); a.click(); a.remove();
       URL.revokeObjectURL(url);
       showToast(list.length + '곳을 JSON으로 저장했습니다.');
@@ -1081,6 +1370,7 @@
 
     window.addEventListener('load', () => {
       if (window.lucide) lucide.createIcons();
+      renderSavedAddrChips();
       renderQuotaUI();
       initKakaoMap();
       if ('serviceWorker' in navigator) {
