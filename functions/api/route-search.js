@@ -1,5 +1,5 @@
 // Cloudflare Pages Function: POST /api/route-search
-// 음식점(FD6) · 카페(CE7) 전용 (놀거리 제거, Cloudflare 50회 한도 준수, 백틱 미사용 안전 버전)
+// 차량(카카오모빌리티) · 도보(TMAP 보행자) 통합 3-레이어 파이프라인 (음식점·카페 전용, 백틱 미사용 안전 버전)
 
 const HIGHWAY_PATTERN = /(고속도로|도시고속|강변북로|올림픽대로|내부순환|외곽순환|제2경인|경인고속|대교|터널)/;
 const GOOGLE_FIELD_MASK = [
@@ -13,8 +13,9 @@ const GOOGLE_FIELD_MASK = [
 
 export async function onRequestPost(context) {
   const { request, env } = context;
-  const kakaoKey = env.KAKAO_REST_API_KEY;
-  const googleKey = env.GOOGLE_PLACES_API_KEY || '';
+  const kakaoKey = env && env.KAKAO_REST_API_KEY ? String(env.KAKAO_REST_API_KEY).trim() : '';
+  const googleKey = env && env.GOOGLE_PLACES_API_KEY ? String(env.GOOGLE_PLACES_API_KEY).trim() : '';
+  const tmapKey = env && env.TMAP_APP_KEY ? String(env.TMAP_APP_KEY).trim() : '';
 
   if (!kakaoKey) {
     return jsonResponse({ error: 'KAKAO_REST_API_KEY 환경변수가 설정되지 않았습니다.' }, 500);
@@ -23,6 +24,7 @@ export async function onRequestPost(context) {
   const apiCalls = {
     kakaoLocal: 0,
     kakaoDirections: 0,
+    tmapWalk: 0,
     googleEnterprise: 0
   };
   const debug = {
@@ -35,12 +37,18 @@ export async function onRequestPost(context) {
     const originQuery = (body && body.origin ? body.origin : '').trim();
     const destQuery = (body && body.destination ? body.destination : '').trim();
     const keyword = (body && body.keyword ? body.keyword : '').trim();
+    const mode = (body && body.mode === 'walk') ? 'walk' : 'car';
     const enrichRatings = (body ? body.enrichRatings !== false : true) && Boolean(googleKey);
 
     if (!originQuery || !destQuery) {
       return jsonResponse({ error: '출발지와 목적지를 모두 입력해 주세요.' }, 400);
     }
 
+    if (mode === 'walk' && !tmapKey) {
+      return jsonResponse({ error: '도보 경로를 사용하려면 Cloudflare 환경변수에 TMAP_APP_KEY를 등록해 주세요.' }, 400);
+    }
+
+    // 1. Geocode Origin & Destination (2 subrequests)
     const [origin, destination] = await Promise.all([
       geocodeKakao(originQuery, kakaoKey, apiCalls),
       geocodeKakao(destQuery, kakaoKey, apiCalls)
@@ -49,31 +57,76 @@ export async function onRequestPost(context) {
     if (!origin) return jsonResponse({ error: '출발지를 찾을 수 없습니다: ' + originQuery }, 404);
     if (!destination) return jsonResponse({ error: '목적지를 찾을 수 없습니다: ' + destQuery }, 404);
 
-    const dirParams = new URLSearchParams({
-      origin: String(origin.lng) + ',' + String(origin.lat),
-      destination: String(destination.lng) + ',' + String(destination.lat),
-      priority: 'RECOMMEND'
-    });
-    apiCalls.kakaoDirections += 1;
-    const dirResp = await fetch('https://apis-navi.kakaomobility.com/v1/directions?' + dirParams.toString(), {
-      headers: { Authorization: 'KakaoAK ' + kakaoKey }
-    });
-    if (!dirResp.ok) {
-      const txt = await dirResp.text();
-      return jsonResponse({ error: '카카오 길찾기 호출 실패 (' + dirResp.status + ')', detail: txt }, 502);
+    // 2. Route Polyline (Car: Kakao Mobility / Walk: TMAP Pedestrian)
+    let totalDistanceM = 0;
+    let totalDurationSec = 0;
+    let polyline = [];
+    let roadPoints = [];
+
+    if (mode === 'walk') {
+      apiCalls.tmapWalk += 1;
+      const tmapResp = await fetch('https://apis.openapi.sk.com/tmap/routes/pedestrian?version=1', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'appKey': tmapKey
+        },
+        body: JSON.stringify({
+          startX: origin.lng,
+          startY: origin.lat,
+          endX: destination.lng,
+          endY: destination.lat,
+          startName: encodeURIComponent(origin.name || '출발'),
+          endName: encodeURIComponent(destination.name || '도착'),
+          reqCoordType: 'WGS84GEO',
+          resCoordType: 'WGS84GEO'
+        })
+      });
+
+      if (!tmapResp.ok) {
+        const txt = await tmapResp.text();
+        return jsonResponse({ error: 'TMAP 도보 경로 호출 실패 (' + String(tmapResp.status) + ')', detail: txt }, 502);
+      }
+      const tmapData = await tmapResp.json();
+      const parsed = extractTmapWalkPoints(tmapData);
+      if (parsed.polyline.length === 0) {
+        return jsonResponse({ error: 'TMAP 도보 경로를 찾을 수 없습니다. (거리가 너무 멀거나 보행 불가 구간일 수 있습니다)' }, 422);
+      }
+      totalDistanceM = parsed.totalDistanceM;
+      totalDurationSec = parsed.totalDurationSec;
+      polyline = parsed.polyline;
+      roadPoints = parsed.roadPoints;
+    } else {
+      const dirParams = new URLSearchParams({
+        origin: String(origin.lng) + ',' + String(origin.lat),
+        destination: String(destination.lng) + ',' + String(destination.lat),
+        priority: 'RECOMMEND'
+      });
+      apiCalls.kakaoDirections += 1;
+      const dirResp = await fetch('https://apis-navi.kakaomobility.com/v1/directions?' + dirParams.toString(), {
+        headers: { Authorization: 'KakaoAK ' + kakaoKey }
+      });
+      if (!dirResp.ok) {
+        const txt = await dirResp.text();
+        return jsonResponse({ error: '카카오 길찾기 호출 실패 (' + String(dirResp.status) + ')', detail: txt }, 502);
+      }
+      const dirData = await dirResp.json();
+      const mainRoute = dirData && dirData.routes ? dirData.routes[0] : null;
+      if (!mainRoute || mainRoute.result_code !== 0) {
+        return jsonResponse({ error: (mainRoute && mainRoute.result_msg) || '자동차 경로를 계산할 수 없습니다.' }, 422);
+      }
+      totalDistanceM = (mainRoute.summary && mainRoute.summary.distance) || 0;
+      totalDurationSec = (mainRoute.summary && mainRoute.summary.duration) || 0;
+      const parsed = extractKakaoCarPoints(mainRoute);
+      polyline = parsed.polyline;
+      roadPoints = parsed.roadPoints;
     }
-    const dirData = await dirResp.json();
-    const mainRoute = dirData && dirData.routes ? dirData.routes[0] : null;
-    if (!mainRoute || mainRoute.result_code !== 0) {
-      return jsonResponse({ error: (mainRoute && mainRoute.result_msg) || '자동차 경로를 계산할 수 없습니다.' }, 422);
-    }
 
-    const totalDistanceM = (mainRoute.summary && mainRoute.summary.distance) || 0;
-    const totalDurationSec = (mainRoute.summary && mainRoute.summary.duration) || 0;
-    const { polyline, roadPoints } = extractRoutePoints(mainRoute);
+    // 3. Sampling Nodes (6 nodes; smaller radius for walk, larger for car)
+    const samplingNodes = buildSamplingNodes(roadPoints, 6, mode);
 
-    const samplingNodes = buildSamplingNodes(roadPoints, 6);
-
+    // 4. Kakao Local Discovery (음식점 FD6 & 카페 CE7)
     const placeMap = new Map();
     const failedNodeIdx = new Set();
     const kakaoTasks = [];
@@ -81,7 +134,7 @@ export async function onRequestPost(context) {
     samplingNodes.forEach((node, idx) => {
       if (keyword) {
         kakaoTasks.push(
-          fetchKakaoKeywordOnce(node, keyword, kakaoKey, apiCalls)
+          fetchKakaoKeywordOnce(node, keyword, kakaoKey, apiCalls, mode)
             .then((docs) => {
               docs.forEach((doc) => {
                 const cat = doc.category_group_code === 'CE7' ? 'cafe' : 'food';
@@ -113,12 +166,22 @@ export async function onRequestPost(context) {
 
     await Promise.all(kakaoTasks);
 
+    // 5. Corridor Geometry & Detour Estimation (Car vs Walk)
+    const maxCorridorKm = mode === 'walk' ? 1.2 : 5.5;
     const allCandidates = Array.from(placeMap.values()).map((p) => {
       const nearest = findNearestRoadPoint(p.lat, p.lng, roadPoints);
       const directKm = Number(nearest.distKm.toFixed(2));
       const progressMin = Math.round((nearest.progressRatio * totalDurationSec) / 60);
-      const icTrap = nearest.isHighway && directKm > 1.2;
-      const estimatedDetourMin = Math.max(2, Math.round(directKm * 3.5 + (icTrap ? 11 : 1.5)));
+      const icTrap = mode === 'car' && nearest.isHighway && directKm > 1.2;
+
+      let estimatedDetourMin = 2;
+      if (mode === 'walk') {
+        // Round-trip walking detour at ~4km/h (approx 30 min per 1km perpendicular offset)
+        estimatedDetourMin = Math.max(1, Math.round(directKm * 28));
+      } else {
+        estimatedDetourMin = Math.max(2, Math.round(directKm * 3.5 + (icTrap ? 11 : 1.5)));
+      }
+
       return {
         ...p,
         directKm,
@@ -131,9 +194,10 @@ export async function onRequestPost(context) {
     });
 
     allCandidates.sort((a, b) => a.detourMin - b.detourMin);
-    const corridorPlaces = allCandidates.filter((p) => p.directKm <= 5.5);
+    const corridorPlaces = allCandidates.filter((p) => p.directKm <= maxCorridorKm);
 
-    const usedSubrequests = apiCalls.kakaoLocal + apiCalls.kakaoDirections;
+    // 6. Stage 2 Google Places API (New) Rating & Opening Hours Enrichment
+    const usedSubrequests = apiCalls.kakaoLocal + apiCalls.kakaoDirections + apiCalls.tmapWalk;
     const googleBudget = Math.max(0, Math.min(28, 45 - usedSubrequests));
 
     if (enrichRatings && googleBudget > 0 && corridorPlaces.length > 0) {
@@ -164,9 +228,10 @@ export async function onRequestPost(context) {
 
     return jsonResponse({
       route: {
+        mode,
         origin,
         destination,
-        distanceKm: Number((totalDistanceM / 1000).toFixed(1)),
+        distanceKm: Number((totalDistanceM / 1000).toFixed(2)),
         durationMin: Math.round(totalDurationSec / 60),
         durationSec: totalDurationSec,
         polyline
@@ -190,6 +255,111 @@ export async function onRequestPost(context) {
   } catch (err) {
     return jsonResponse({ error: (err && err.message) || '경로 탐색 처리 중 오류가 발생했습니다.' }, 500);
   }
+}
+
+function extractTmapWalkPoints(tmapData) {
+  const features = (tmapData && Array.isArray(tmapData.features)) ? tmapData.features : [];
+  let totalDistanceM = 0;
+  let totalDurationSec = 0;
+  const polyline = [];
+  const roadPoints = [];
+  let cumulativeM = 0;
+
+  for (const feat of features) {
+    const props = feat.properties || {};
+    if (props.totalDistance && !totalDistanceM) totalDistanceM = Number(props.totalDistance) || 0;
+    if (props.totalTime && !totalDurationSec) totalDurationSec = Number(props.totalTime) || 0;
+
+    const geom = feat.geometry || {};
+    const roadName = props.name || '';
+    if (geom.type === 'LineString' && Array.isArray(geom.coordinates)) {
+      for (const coord of geom.coordinates) {
+        const lng = Number(coord[0]);
+        const lat = Number(coord[1]);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+        if (polyline.length > 0) {
+          const prev = polyline[polyline.length - 1];
+          cumulativeM += haversineKm(prev[0], prev[1], lat, lng) * 1000;
+        }
+        polyline.push([lat, lng]);
+        roadPoints.push({ lat, lng, roadName, isHighway: false, cumulativeM });
+      }
+    }
+  }
+
+  const totalM = Math.max(1, cumulativeM);
+  for (const pt of roadPoints) {
+    pt.progressRatio = pt.cumulativeM / totalM;
+  }
+  const step = Math.max(1, Math.floor(polyline.length / 200));
+  const slimPolyline = polyline.filter((_, idx) => idx % step === 0 || idx === polyline.length - 1);
+  return {
+    totalDistanceM: totalDistanceM || Math.round(cumulativeM),
+    totalDurationSec: totalDurationSec || Math.round((cumulativeM / 1000) * 900),
+    polyline: slimPolyline,
+    roadPoints
+  };
+}
+
+function extractKakaoCarPoints(route) {
+  const polyline = [];
+  const roadPoints = [];
+  let cumulativeM = 0;
+
+  for (const section of route.sections || []) {
+    for (const road of section.roads || []) {
+      const roadName = road.name || '';
+      const isHighway = HIGHWAY_PATTERN.test(roadName);
+      const v = road.vertexes || [];
+      for (let i = 0; i < v.length; i += 2) {
+        const lng = v[i];
+        const lat = v[i + 1];
+        if (polyline.length > 0) {
+          const prev = polyline[polyline.length - 1];
+          cumulativeM += haversineKm(prev[0], prev[1], lat, lng) * 1000;
+        }
+        polyline.push([lat, lng]);
+        roadPoints.push({ lat, lng, roadName, isHighway, cumulativeM });
+      }
+    }
+  }
+
+  const totalM = Math.max(1, cumulativeM);
+  for (const pt of roadPoints) {
+    pt.progressRatio = pt.cumulativeM / totalM;
+  }
+
+  const step = Math.max(1, Math.floor(polyline.length / 200));
+  const slimPolyline = polyline.filter((_, idx) => idx % step === 0 || idx === polyline.length - 1);
+  return { polyline: slimPolyline, roadPoints };
+}
+
+function buildSamplingNodes(roadPoints, maxNodes, mode) {
+  const count = maxNodes || 6;
+  if (roadPoints.length === 0) return [];
+  const nodes = [];
+  for (let k = 0; k < count; k++) {
+    const targetRatio = k / Math.max(1, count - 1);
+    let bestPt = roadPoints[0];
+    let bestDiff = 999;
+    for (let i = 0; i < roadPoints.length; i++) {
+      const diff = Math.abs(roadPoints[i].progressRatio - targetRatio);
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        bestPt = roadPoints[i];
+      }
+    }
+    const fallbackName = k === 0 ? '출발권' : (k === count - 1 ? '목적지권' : '경로 ' + String(k + 1) + '구간');
+    const radius = mode === 'walk' ? 450 : (bestPt.isHighway ? 4000 : 3000);
+    nodes.push({
+      name: bestPt.roadName || fallbackName,
+      lat: bestPt.lat,
+      lng: bestPt.lng,
+      radius,
+      type: mode === 'walk' ? 'walk' : (bestPt.isHighway ? 'ic' : 'urban')
+    });
+  }
+  return nodes;
 }
 
 function pickBalancedTargets(places, budget) {
@@ -249,66 +419,6 @@ async function geocodeKakao(query, kakaoKey, apiCalls) {
   return null;
 }
 
-function extractRoutePoints(route) {
-  const polyline = [];
-  const roadPoints = [];
-  let cumulativeM = 0;
-
-  for (const section of route.sections || []) {
-    for (const road of section.roads || []) {
-      const roadName = road.name || '';
-      const isHighway = HIGHWAY_PATTERN.test(roadName);
-      const v = road.vertexes || [];
-      for (let i = 0; i < v.length; i += 2) {
-        const lng = v[i];
-        const lat = v[i + 1];
-        if (polyline.length > 0) {
-          const prev = polyline[polyline.length - 1];
-          cumulativeM += haversineKm(prev[0], prev[1], lat, lng) * 1000;
-        }
-        polyline.push([lat, lng]);
-        roadPoints.push({ lat, lng, roadName, isHighway, cumulativeM });
-      }
-    }
-  }
-
-  const totalM = Math.max(1, cumulativeM);
-  for (const pt of roadPoints) {
-    pt.progressRatio = pt.cumulativeM / totalM;
-  }
-
-  const step = Math.max(1, Math.floor(polyline.length / 200));
-  const slimPolyline = polyline.filter((_, idx) => idx % step === 0 || idx === polyline.length - 1);
-  return { polyline: slimPolyline, roadPoints };
-}
-
-function buildSamplingNodes(roadPoints, maxNodes) {
-  const count = maxNodes || 6;
-  if (roadPoints.length === 0) return [];
-  const nodes = [];
-  for (let k = 0; k < count; k++) {
-    const targetRatio = k / Math.max(1, count - 1);
-    let bestPt = roadPoints[0];
-    let bestDiff = 999;
-    for (let i = 0; i < roadPoints.length; i++) {
-      const diff = Math.abs(roadPoints[i].progressRatio - targetRatio);
-      if (diff < bestDiff) {
-        bestDiff = diff;
-        bestPt = roadPoints[i];
-      }
-    }
-    const fallbackName = k === 0 ? '출발권' : (k === count - 1 ? '목적지권' : '경로 ' + String(k + 1) + '구간');
-    nodes.push({
-      name: bestPt.roadName || fallbackName,
-      lat: bestPt.lat,
-      lng: bestPt.lng,
-      radius: bestPt.isHighway ? 4000 : 3000,
-      type: bestPt.isHighway ? 'ic' : 'urban'
-    });
-  }
-  return nodes;
-}
-
 async function fetchKakaoCategoryOnce(node, categoryCode, kakaoKey, apiCalls) {
   apiCalls.kakaoLocal += 1;
   const params = new URLSearchParams({
@@ -328,13 +438,14 @@ async function fetchKakaoCategoryOnce(node, categoryCode, kakaoKey, apiCalls) {
   return data.documents || [];
 }
 
-async function fetchKakaoKeywordOnce(node, keyword, kakaoKey, apiCalls) {
+async function fetchKakaoKeywordOnce(node, keyword, kakaoKey, apiCalls, mode) {
   apiCalls.kakaoLocal += 1;
+  const searchRadius = mode === 'walk' ? 650 : Math.min(5000, node.radius + 1000);
   const params = new URLSearchParams({
     query: keyword,
     x: String(node.lng),
     y: String(node.lat),
-    radius: String(Math.min(5000, node.radius + 1000)),
+    radius: String(searchRadius),
     size: '15',
     page: '1',
     sort: 'distance'
