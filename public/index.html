@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0B1120">
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
-  <title>길맛 v3.1 — 차량·도보 경로상 맛집·카페 탐색</title>
+  <title>길맛 v3.2 — 먹을텐데·최자로드 연동 맛집 탐색</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -92,7 +92,7 @@
           <div>
             <div class="flex items-center gap-1.5">
               <h1 class="text-base font-bold text-white tracking-tight">길맛</h1>
-              <span class="text-[11px] font-semibold px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800">v3.1</span>
+              <span class="text-[11px] font-semibold px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800">v3.2</span>
             </div>
           </div>
           <!-- Car / Walk Mode Switch -->
@@ -143,11 +143,18 @@
           </button>
         </div>
 
-        <button id="openQuotaBtn" type="button"
-          class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition">
-          <i data-lucide="gauge" class="w-3.5 h-3.5"></i>
-          <span>쿼터</span>
-        </button>
+        <div class="flex items-center gap-1.5">
+          <button id="openCuratedBtn" type="button"
+            class="bg-purple-950/80 hover:bg-purple-900/80 text-purple-200 border border-purple-700 text-xs font-semibold px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+            <span>먹을텐데·최자</span>
+          </button>
+          <button id="openQuotaBtn" type="button"
+            class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition">
+            <i data-lucide="gauge" class="w-3.5 h-3.5"></i>
+            <span>쿼터</span>
+          </button>
+        </div>
       </div>
 
       <!-- Row 2: Quick Saved Addresses (현위치 · 집 · 회사 · 즐겨찾기 주소) -->
@@ -231,6 +238,10 @@
             <button type="button" data-cat="all" class="cat-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-600 text-white shrink-0">전체</button>
             <button type="button" data-cat="food" class="cat-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 shrink-0">음식점</button>
             <button type="button" data-cat="cafe" class="cat-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 shrink-0">카페</button>
+            <button type="button" id="curatedOnlyBtn" class="px-3 py-1.5 rounded-full text-xs font-semibold bg-purple-950/60 text-purple-300 border border-purple-800 hover:bg-purple-900/60 shrink-0 inline-flex items-center gap-1">
+              <i data-lucide="sparkles" class="w-3 h-3"></i>
+              <span>유명맛집 (<span id="curatedMatchCount">0</span>)</span>
+            </button>
             <button type="button" id="favOnlyBtn" class="px-3 py-1.5 rounded-full text-xs font-semibold bg-rose-950/60 text-rose-300 border border-rose-800 hover:bg-rose-900/60 shrink-0 inline-flex items-center gap-1">
               <i data-lucide="heart" class="w-3 h-3"></i>
               <span>찜 (<span id="favCount">0</span>)</span>
@@ -373,6 +384,29 @@
     </div>
   </div>
 
+  <!-- Curated Directory Modal (성시경 먹을텐데 · 최자로드 82곳) -->
+  <div id="curatedModal" class="hidden fixed inset-0 z-[1100] bg-black/65 backdrop-blur-[2px] flex items-center justify-center p-3 overscroll-none touch-none">
+    <div class="bg-slate-900 border border-slate-700 w-full max-w-lg max-h-[88vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+      <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+        <div>
+          <h2 class="text-base font-bold text-white">성시경 먹을텐데 · 최자로드 맛집 도감</h2>
+          <p class="text-xs text-slate-400">경로 탐색 시 자동 매칭되며, 여기서 바로 도착지(B)로 지정할 수 있습니다.</p>
+        </div>
+        <button id="closeCuratedBtn" type="button" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="p-3 border-b border-slate-800 flex flex-wrap items-center gap-1.5 text-xs">
+        <button type="button" data-csrc="all" class="csrc-btn px-2.5 py-1 rounded-full font-semibold bg-purple-600 text-white">전체</button>
+        <button type="button" data-csrc="먹을텐데" class="csrc-btn px-2.5 py-1 rounded-full font-semibold bg-slate-800 text-slate-300">먹을텐데</button>
+        <button type="button" data-csrc="최자로드" class="csrc-btn px-2.5 py-1 rounded-full font-semibold bg-slate-800 text-slate-300">최자로드</button>
+        <input id="curatedSearchInput" type="text" placeholder="상호·지역·메뉴 검색"
+          class="flex-1 min-w-[140px] px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 outline-none focus:border-purple-500">
+      </div>
+      <div id="curatedDirList" class="p-3 overflow-y-auto flex-1 space-y-2 text-xs overscroll-contain touch-pan-y"></div>
+    </div>
+  </div>
+
   <!-- Place Detail Drawer -->
   <div id="detailModal" class="hidden fixed inset-0 z-[1100] bg-black/65 backdrop-blur-[2px] flex items-end sm:items-center justify-center sm:justify-end overscroll-none touch-none">
     <div class="bg-slate-900 border-t sm:border-t-0 sm:border-l border-slate-700 w-full sm:w-[430px] max-h-[88vh] sm:h-full sm:max-h-full rounded-t-2xl sm:rounded-none shadow-2xl flex flex-col overflow-hidden">
@@ -484,6 +518,10 @@
       excludeIcTrap: true,
       enrichRatings: true,
       favOnly: false,
+      curatedOnly: false,
+      curatedList: [],
+      curatedFilterSrc: "all",
+      curatedSearchText: "",
       sortBy: 'detour',
       dayOfWeek: now.getDay(),
       departTime: String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0'),
@@ -681,6 +719,7 @@
       return state.places.filter(p => {
         if (state.category !== 'all' && p.category !== state.category) return false;
         if (state.favOnly && !state.favorites.includes(p.id)) return false;
+        if (state.curatedOnly && (!p.curatedSources || p.curatedSources.length === 0)) return false;
         if (state.excludeIcTrap && p.icTrap) return false;
         if (p.detourMin > state.maxDetour) return false;
         if (p.rating === null) {
@@ -779,6 +818,7 @@
     function renderAll() {
       const filtered = getFilteredPlaces();
       document.getElementById('favCount').textContent = state.favorites.length;
+      document.getElementById('curatedMatchCount').textContent = state.places.filter(p => p.curatedSources && p.curatedSources.length > 0).length;
       if (state.places.length > 0) {
         document.getElementById('resultCountLabel').textContent = '조건 일치 ' + filtered.length + '곳 (제한 없이 전체 표시)';
       }
@@ -838,6 +878,7 @@
                   '<span class="text-[10px] font-bold px-1.5 py-0.5 rounded ' + meta.cls + '">' + meta.label + '</span>' +
                   '<span class="text-[11px] font-medium text-slate-400">' + p.zone + '</span>' +
                   (p.detourVerified ? '<span class="text-[10px] font-semibold text-sky-300 bg-sky-950 px-1.5 py-0.5 rounded">실측 우회</span>' : '') +
+                  (p.curatedSources && p.curatedSources.length ? p.curatedSources.map(src => '<span class="text-[10px] font-bold text-purple-200 bg-purple-900/90 border border-purple-600 px-1.5 py-0.5 rounded">' + src + '</span>').join('') : '') +
                   (p.icTrap ? '<span class="text-[10px] font-semibold text-rose-300 bg-rose-950 px-1.5 py-0.5 rounded">IC 우회 주의</span>' : '') +
                 '</div>' +
                 '<h3 class="text-sm font-bold text-slate-100 mt-1 truncate">' + p.name + '</h3>' +
@@ -900,7 +941,7 @@
 
         state.route = data.route;
         state.samplingNodes = data.samplingNodes || [];
-        state.places = data.places || [];
+        state.places = attachCuratedBadges(data.places || []);
         state.selectedId = null;
 
         // If searched by menu keyword directly, clear local text filter so all API results show immediately
@@ -947,7 +988,8 @@
       const detailOpen = !document.getElementById('detailModal').classList.contains('hidden');
       const quotaOpen = !document.getElementById('quotaModal').classList.contains('hidden');
       const addrOpen = !document.getElementById('addrModal').classList.contains('hidden');
-      const shouldLock = detailOpen || quotaOpen || addrOpen;
+      const curatedOpen = !document.getElementById('curatedModal').classList.contains('hidden');
+      const shouldLock = detailOpen || quotaOpen || addrOpen || curatedOpen;
       if (shouldLock && !isBodyLocked) {
         savedScrollY = window.scrollY || 0;
         document.documentElement.style.overflow = 'hidden';
@@ -1368,7 +1410,117 @@
       showToast(list.length + '곳을 JSON으로 저장했습니다.');
     });
 
+    function normalizeStoreName(str) {
+      return String(str || '').toLowerCase().replace(/\s+/g, '').replace(/(본점|1호점|지점|직영점)/g, '');
+    }
+
+    function attachCuratedBadges(places) {
+      if (!Array.isArray(state.curatedList) || state.curatedList.length === 0) return places;
+      return places.map(p => {
+        const pNorm = normalizeStoreName(p.name);
+        const pAddr = String(p.address || p.zone || '');
+        const matched = state.curatedList.find(c => {
+          const cNorm = normalizeStoreName(c.name);
+          if (!cNorm || !pNorm) return false;
+          const nameHit = pNorm === cNorm || (cNorm.length >= 3 && (pNorm.includes(cNorm) || cNorm.includes(pNorm)));
+          if (!nameHit) return false;
+          const gu = (c.area || '').split(' ')[1] || '';
+          return !gu || pAddr.includes(gu);
+        });
+        if (matched) {
+          return Object.assign({}, p, {
+            curatedSources: matched.sources || [],
+            curatedMenu: matched.menu || ''
+          });
+        }
+        return p;
+      });
+    }
+
+    async function loadCuratedPlaces() {
+      try {
+        const resp = await fetch('/curated-places.json');
+        if (!resp.ok) return;
+        const data = await resp.json();
+        state.curatedList = Array.isArray(data.places) ? data.places : [];
+      } catch {}
+    }
+
+    function renderCuratedDirectory() {
+      const listEl = document.getElementById('curatedDirList');
+      const kw = (state.curatedSearchText || '').trim().toLowerCase();
+      const filtered = state.curatedList.filter(c => {
+        if (state.curatedFilterSrc !== 'all' && !(c.sources || []).includes(state.curatedFilterSrc)) return false;
+        if (kw) {
+          const hay = [c.name, c.region, c.area, c.cuisine, c.menu].join(' ').toLowerCase();
+          if (!hay.includes(kw)) return false;
+        }
+        return true;
+      });
+      if (filtered.length === 0) {
+        listEl.innerHTML = '<p class="text-center text-slate-400 py-8">검색 결과가 없습니다.</p>';
+        return;
+      }
+      listEl.innerHTML = filtered.map(c => {
+        const badges = (c.sources || []).map(s => '<span class="px-1.5 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-700 font-bold text-[10px]">' + s + '</span>').join(' ');
+        const naverUrl = 'https://map.naver.com/p/search/' + encodeURIComponent(c.name + ' ' + (c.area || ''));
+        return '<div class="bg-slate-800/80 border border-slate-700 rounded-xl p-2.5 flex items-center justify-between gap-2">' +
+          '<div class="min-w-0">' +
+            '<div class="flex items-center gap-1.5 flex-wrap">' + badges + '<span class="text-slate-400 text-[11px]">' + c.area + '</span></div>' +
+            '<div class="text-sm font-bold text-slate-100 mt-0.5 truncate">' + c.name + (c.menu ? ' <span class="text-xs font-normal text-amber-300">· ' + c.menu + '</span>' : '') + '</div>' +
+          '</div>' +
+          '<div class="flex items-center gap-1 shrink-0">' +
+            '<button type="button" data-set-dest="' + (c.name + ' ' + c.area).replace(/"/g, '&quot;') + '" class="set-curated-dest px-2 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-[11px]">도착지 B</button>' +
+            '<a href="' + naverUrl + '" target="_blank" rel="noopener noreferrer" class="px-2 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[11px]">네이버</a>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    function openCuratedModal() {
+      renderCuratedDirectory();
+      document.getElementById('curatedModal').classList.remove('hidden');
+      syncBodyScrollLock();
+    }
+    function closeCuratedModal() {
+      document.getElementById('curatedModal').classList.add('hidden');
+      syncBodyScrollLock();
+    }
+    document.getElementById('openCuratedBtn').addEventListener('click', openCuratedModal);
+    document.getElementById('closeCuratedBtn').addEventListener('click', closeCuratedModal);
+    document.getElementById('curatedModal').addEventListener('click', (e) => { if (e.target.id === 'curatedModal') closeCuratedModal(); });
+    document.querySelectorAll('.csrc-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.curatedFilterSrc = btn.dataset.csrc;
+        document.querySelectorAll('.csrc-btn').forEach(b => {
+          b.className = b === btn
+            ? 'csrc-btn px-2.5 py-1 rounded-full font-semibold bg-purple-600 text-white'
+            : 'csrc-btn px-2.5 py-1 rounded-full font-semibold bg-slate-800 text-slate-300';
+        });
+        renderCuratedDirectory();
+      });
+    });
+    document.getElementById('curatedSearchInput').addEventListener('input', (e) => {
+      state.curatedSearchText = e.target.value;
+      renderCuratedDirectory();
+    });
+    document.getElementById('curatedDirList').addEventListener('click', (e) => {
+      const btn = e.target.closest('.set-curated-dest');
+      if (!btn) return;
+      document.getElementById('destInput').value = btn.dataset.setDest;
+      closeCuratedModal();
+      showToast('도착지(B)에 입력했습니다.');
+    });
+    document.getElementById('curatedOnlyBtn').addEventListener('click', (e) => {
+      state.curatedOnly = !state.curatedOnly;
+      e.currentTarget.className = state.curatedOnly
+        ? 'px-3 py-1.5 rounded-full text-xs font-semibold bg-purple-600 text-white border border-purple-500 shrink-0 inline-flex items-center gap-1'
+        : 'px-3 py-1.5 rounded-full text-xs font-semibold bg-purple-950/60 text-purple-300 border border-purple-800 hover:bg-purple-900/60 shrink-0 inline-flex items-center gap-1';
+      renderAll();
+    });
+
     window.addEventListener('load', () => {
+      loadCuratedPlaces();
       if (window.lucide) lucide.createIcons();
       renderSavedAddrChips();
       renderQuotaUI();
