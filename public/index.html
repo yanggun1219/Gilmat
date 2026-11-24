@@ -327,22 +327,18 @@
             <button type="button" data-sub="카페" class="sub-btn gm-pill px-3.5 py-1.5 rounded-full shrink-0">카페</button>
           </div>
 
-          <!-- Row 2: Big Menu Search + Sort -->
+          <!-- Row 2: Result Filter + Sort -->
           <div class="flex items-center gap-1.5">
             <div class="relative flex-1 gm-input-box active rounded-xl flex items-center">
               <i data-lucide="search" class="w-4 h-4 gm-muted ml-3 shrink-0"></i>
-              <input id="filterInput" type="text" placeholder="메뉴·상호 재검색 (예: 냉면, 순대국)"
+              <input id="filterInput" type="text" placeholder="결과 내 검색 (상호·지역·업종)"
                 class="gm-input w-full pl-2 pr-8 py-2.5 text-base sm:text-lg font-extrabold outline-none">
               <button id="clearFilterBtn" type="button" class="hidden absolute right-2.5 gm-muted">
                 <i data-lucide="x" class="w-4 h-4"></i>
               </button>
             </div>
-            <button id="menuRouteSearchBtn" type="button" title="입력한 메뉴로 경로 전체 실시간 재탐색"
-              class="px-3.5 py-2.5 text-sm font-black bg-[#C8F526] text-[#141414] border-2 border-[#141414] rounded-xl shrink-0">
-              메뉴 탐색
-            </button>
             <select id="sortSelect" aria-label="정렬 기준"
-              class="gm-card text-sm font-black rounded-xl px-2.5 py-2.5 outline-none cursor-pointer">
+              class="gm-card text-sm font-black rounded-xl px-3 py-2.5 outline-none cursor-pointer shrink-0">
               <option value="popular">인기도순</option>
               <option value="curated">유명맛집순</option>
               <option value="detour">우회 적은순</option>
@@ -929,8 +925,7 @@
         const kw = state.filterText.trim();
         listEl.innerHTML = '<div class="text-center py-12 px-4 space-y-3 gm-card rounded-2xl">' +
           '<p class="text-lg font-black">' + (kw ? ("현재 목록에 '" + kw + "' 결과가 없어요") : '조건에 맞는 맛집이 없어요') + '</p>' +
-          (kw ? '<button type="button" id="emptyMenuSearchBtn" class="px-4 py-2.5 rounded-xl bg-[#C8F526] text-[#141414] border-2 border-[#141414] text-sm font-black">경로 전체에서 \'' + kw + '\' 실시간 검색</button>'
-              : '<p class="text-sm font-medium gm-muted">업종 필터나 최대 우회 시간을 넓혀 보세요.</p>') +
+          '<p class="text-sm font-medium gm-muted">검색어나 업종·우회 필터를 살짝 넓혀 보세요.</p>' +
         '</div>';
       } else {
         const depMin = parseTimeToMin(state.departTime);
@@ -1321,14 +1316,6 @@
     });
 
     document.getElementById('scanRouteBtn').addEventListener('click', () => runLiveRouteSearch(''));
-    document.getElementById('menuRouteSearchBtn').addEventListener('click', () => {
-      runLiveRouteSearch(document.getElementById('filterInput').value.trim());
-    });
-    document.getElementById('filterInput').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && state.places.length > 0 && getFilteredPlaces().length === 0) {
-        runLiveRouteSearch(e.target.value.trim());
-      }
-    });
 
     document.getElementById('fitRouteBtn').addEventListener('click', () => {
       if (kakaoMap && routeBounds) kakaoMap.setBounds(routeBounds);
@@ -1396,7 +1383,6 @@
     });
 
     document.getElementById('placesList').addEventListener('click', (e) => {
-      if (e.target.closest('#emptyMenuSearchBtn')) { runLiveRouteSearch(state.filterText.trim()); return; }
       const favBtn = e.target.closest('.fav-toggle-btn');
       if (favBtn) { e.stopPropagation(); toggleFavorite(favBtn.dataset.favId); return; }
       const card = e.target.closest('.place-card');
