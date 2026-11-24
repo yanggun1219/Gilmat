@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gilmat-v32-shell-v1';
+const CACHE_NAME = 'gilmat-v34';
 const SHELL_ASSETS = ['/', '/index.html', '/manifest.json', '/icon.svg'];
 
 self.addEventListener('install', (event) => {

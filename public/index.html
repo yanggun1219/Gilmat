@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0B1120">
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
-  <title>길맛 v3.2 — 먹을텐데·최자로드 연동 맛집 탐색</title>
+  <title>길맛 v3.4 — 먹을텐데·최자로드·또간집 연동 맛집 탐색</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -147,7 +147,7 @@
           <button id="openCuratedBtn" type="button"
             class="bg-purple-950/80 hover:bg-purple-900/80 text-purple-200 border border-purple-700 text-xs font-semibold px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition">
             <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
-            <span>먹을텐데·최자</span>
+            <span>유명맛집 도감</span>
           </button>
           <button id="openQuotaBtn" type="button"
             class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition">
@@ -384,13 +384,13 @@
     </div>
   </div>
 
-  <!-- Curated Directory Modal (성시경 먹을텐데 · 최자로드 82곳) -->
+  <!-- Curated Directory Modal (먹을텐데 · 최자로드 · 또간집) -->
   <div id="curatedModal" class="hidden fixed inset-0 z-[1100] bg-black/65 backdrop-blur-[2px] flex items-center justify-center p-3 overscroll-none touch-none">
     <div class="bg-slate-900 border border-slate-700 w-full max-w-lg max-h-[88vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
       <div class="p-4 border-b border-slate-800 flex items-center justify-between">
         <div>
-          <h2 class="text-base font-bold text-white">성시경 먹을텐데 · 최자로드 맛집 도감</h2>
-          <p class="text-xs text-slate-400">경로 탐색 시 자동 매칭되며, 여기서 바로 도착지(B)로 지정할 수 있습니다.</p>
+          <h2 class="text-base font-bold text-white">유명맛집 도감 (먹을텐데·최자로드·또간집)</h2>
+          <p id="curatedMetaText" class="text-xs text-slate-400">경로 탐색 시 자동 매칭되며, 여기서 바로 도착지(B)로 지정할 수 있습니다.</p>
         </div>
         <button id="closeCuratedBtn" type="button" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800">
           <i data-lucide="x" class="w-5 h-5"></i>
@@ -400,6 +400,7 @@
         <button type="button" data-csrc="all" class="csrc-btn px-2.5 py-1 rounded-full font-semibold bg-purple-600 text-white">전체</button>
         <button type="button" data-csrc="먹을텐데" class="csrc-btn px-2.5 py-1 rounded-full font-semibold bg-slate-800 text-slate-300">먹을텐데</button>
         <button type="button" data-csrc="최자로드" class="csrc-btn px-2.5 py-1 rounded-full font-semibold bg-slate-800 text-slate-300">최자로드</button>
+        <button type="button" data-csrc="또간집" class="csrc-btn px-2.5 py-1 rounded-full font-semibold bg-slate-800 text-slate-300">또간집</button>
         <input id="curatedSearchInput" type="text" placeholder="상호·지역·메뉴 검색"
           class="flex-1 min-w-[140px] px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 outline-none focus:border-purple-500">
       </div>
@@ -878,7 +879,7 @@
                   '<span class="text-[10px] font-bold px-1.5 py-0.5 rounded ' + meta.cls + '">' + meta.label + '</span>' +
                   '<span class="text-[11px] font-medium text-slate-400">' + p.zone + '</span>' +
                   (p.detourVerified ? '<span class="text-[10px] font-semibold text-sky-300 bg-sky-950 px-1.5 py-0.5 rounded">실측 우회</span>' : '') +
-                  (p.curatedSources && p.curatedSources.length ? p.curatedSources.map(src => '<span class="text-[10px] font-bold text-purple-200 bg-purple-900/90 border border-purple-600 px-1.5 py-0.5 rounded">' + src + '</span>').join('') : '') +
+                  (p.curatedSources && p.curatedSources.length ? p.curatedSources.map(src => '<span class="text-[10px] font-bold px-1.5 py-0.5 rounded border ' + getCuratedBadgeCls(src) + '">' + src + '</span>').join('') : '') +
                   (p.icTrap ? '<span class="text-[10px] font-semibold text-rose-300 bg-rose-950 px-1.5 py-0.5 rounded">IC 우회 주의</span>' : '') +
                 '</div>' +
                 '<h3 class="text-sm font-bold text-slate-100 mt-1 truncate">' + p.name + '</h3>' +
@@ -1437,12 +1438,22 @@
       });
     }
 
+    function getCuratedBadgeCls(src) {
+      if (src === '최자로드') return 'text-amber-200 bg-amber-900/80 border-amber-600';
+      if (src === '또간집') return 'text-rose-200 bg-rose-900/80 border-rose-600';
+      return 'text-purple-200 bg-purple-900/90 border-purple-600';
+    }
+
     async function loadCuratedPlaces() {
       try {
-        const resp = await fetch('/curated-places.json');
+        const resp = await fetch('/curated-places.json?v=34');
         if (!resp.ok) return;
         const data = await resp.json();
         state.curatedList = Array.isArray(data.places) ? data.places : [];
+        const metaEl = document.getElementById('curatedMetaText');
+        if (metaEl && data.updated) {
+          metaEl.textContent = '총 ' + state.curatedList.length + '곳 · 마지막 업데이트 ' + data.updated + ' · 경로 탐색 시 자동 반영';
+        }
       } catch {}
     }
 
@@ -1462,7 +1473,7 @@
         return;
       }
       listEl.innerHTML = filtered.map(c => {
-        const badges = (c.sources || []).map(s => '<span class="px-1.5 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-700 font-bold text-[10px]">' + s + '</span>').join(' ');
+        const badges = (c.sources || []).map(s => '<span class="px-1.5 py-0.5 rounded border font-bold text-[10px] ' + getCuratedBadgeCls(s) + '">' + s + '</span>').join(' ');
         const naverUrl = 'https://map.naver.com/p/search/' + encodeURIComponent(c.name + ' ' + (c.area || ''));
         return '<div class="bg-slate-800/80 border border-slate-700 rounded-xl p-2.5 flex items-center justify-between gap-2">' +
           '<div class="min-w-0">' +
