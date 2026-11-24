@@ -1,17 +1,23 @@
 {
   "name": "길맛 (Gilmat)",
   "short_name": "길맛",
-  "description": "출발지부터 목적지까지 경로상 모든 맛집·카페·놀거리 실시간 탐색 PWA",
+  "description": "출발지부터 목적지까지 경로상 맛집·카페 실시간 탐색 PWA",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F8FAFC",
-  "theme_color": "#1D4ED8",
+  "background_color": "#FAF8F3",
+  "theme_color": "#FAF8F3",
   "orientation": "any",
   "icons": [
     {
-      "src": "/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ]

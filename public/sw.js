@@ -1,9 +1,16 @@
-const CACHE_NAME = 'gilmat-v34';
-const SHELL_ASSETS = ['/', '/index.html', '/manifest.json', '/icon.svg'];
+const CACHE_NAME = 'gilmat-v40';
+const PRECACHE_URLS = [
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/curated-places.json'
+];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_ASSETS))
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS)).catch(() => {})
   );
   self.skipWaiting();
 });
@@ -18,6 +25,7 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
   if (url.pathname.startsWith('/api/')) return;
   event.respondWith(
